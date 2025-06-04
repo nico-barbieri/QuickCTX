@@ -1,0 +1,39 @@
+{
+  "name": "quickctx",
+  "version": "1.0.0",
+  "description": "Fast & easy custom context menus for your web projects. Lightweight and flexible!",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nico-barbieri/quickctx.git"
+  },
+  "keywords": [
+    "context-menu",
+    "custom-menu",
+    "right-click",
+    "javascript",
+    "ui",
+    "frontend",
+    "lightweight",
+    "fast",
+    "simple",
+    "easy",
+    "ctxmenu",
+    "popup-menu",
+    "vanilla-js",
+    "menu"
+  ],
+  "author": "Nico Barbieri (https://github.com/nico-barbieri)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nico-barbieri/quickctx/issues"
+  },
+  "homepage": "https://github.com/nico-barbieri/quickctx#readme"
+}
