@@ -1,14 +1,21 @@
 {
-  "name": "quickctx",
+  "name": "@nicobarbieri/quickctx",
   "version": "1.0.0",
   "description": "Fast & easy custom context menus for your web projects. Lightweight and flexible!",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs",
-    "example": "examples"
-  },
+  "main": "dist/quickctx.umd.js",
+  "module": "dist/quickctx.esm.js",
+  "browser": "dist/quickctx.umd.min.js",
+  "style": "dist/quickctx.css",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -35,5 +42,17 @@
   "bugs": {
     "url": "https://github.com/nico-barbieri/quickctx/issues"
   },
-  "homepage": "https://github.com/nico-barbieri/quickctx#readme"
+  "homepage": "https://github.com/nico-barbieri/quickctx#readme",
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "rollup": "^4.9.6",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-terser": "^7.0.2"
+  }
 }
