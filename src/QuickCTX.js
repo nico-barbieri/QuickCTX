@@ -254,3 +254,5 @@ class QuickCTX {
         // logic to parse HTML-defined menus and register them
     }
 }
+
+export default QuickCTX;

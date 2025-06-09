@@ -69,3 +69,5 @@ class MenuCommand {
         });
     }
 }
+
+export default MenuCommand;

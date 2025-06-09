@@ -1,5 +1,4 @@
 import MenuCommand from './MenuCommand.js';
-import { parseHtmlMenu, isElementInViewport } from './utils.js';
 import QuickCTX from './QuickCTX.js';
 
 import './styles/default.css';
