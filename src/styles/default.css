@@ -13,7 +13,6 @@
     transform: translateY(10px);
 }
 
-.quickctx-container.quickctx--opening,
 .quickctx-container.quickctx--open {
     opacity: 1;
     transform: translateY(0);

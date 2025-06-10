@@ -31,19 +31,28 @@ document.addEventListener('DOMContentLoaded', () => {
         ctxManager.setLoggerIsEnabled(true);
 
         const openAction = (event) => {
-            log(`Action 'Open' executed on element with ID: ${event.target.id}`);
+            log(`Action 'Open' executed on element with ID: ${event.target.dataset.id}`);
         };
-
         const editAction = (event) => {
-            log(`Action 'Edit' executed on element with ID: ${event.target.id}`);
+            log(`Action 'Edit' executed on element with ID: ${event.target.dataset.id}`);
         };
-
         const deleteAction = (event) => {
-            log(`Action 'Delete' executed on element with ID: ${event.target.id}`);
+            log(`Action 'Delete' executed on element with ID: ${event.target.dataset.id}`);
+        };
+        // Nuove azioni per i nuovi menu
+        const applyFilterAction = (event) => {
+             log(`Action 'Apply Filter' executed on element with ID: ${event.target.dataset.id}`);
+        };
+        const shareEmailAction = (event) => {
+             log(`Action 'Share via Email' executed on element with ID: ${event.target.dataset.id}`);
+        };
+        const viewProfileAction = (event) => {
+             log(`Action 'View Profile' (from hover) on element with ID: ${event.target.dataset.id}`);
         };
 
+        // --- MENU 1
         ctxManager.createAndBindMenu({
-            menuId: 'testMenu',
+            menuId: 'documentMenu',
             selector: '[data-type="document"]', 
             defaultTargetType: 'document',     
             headerText: 'Document Actions', 
@@ -54,6 +63,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 { label: "Delete", action: deleteAction }
             ]
         });
+
+        // --- MENU 2
+        ctxManager.createAndBindMenu({
+            menuId: 'imageMenu',
+            selector: '[data-type="image"]',
+            defaultTargetType: 'image',
+            headerText: 'Image Actions',
+            structure: [
+                { label: "Edit Image", action: editAction },
+                { label: "Apply Filter", action: applyFilterAction },
+                MenuCommand.Separator("Sharing Options"), // separator with custom content
+                {
+                    label: "Share",
+                    // to create a submenu, we use a subCommands array
+                    subCommands: [
+                        { label: "Share via Email", action: shareEmailAction },
+                        { label: "Copy Link", action: (e) => log('Link copied!') }
+                    ]
+                }
+            ]
+        });
+
+        // --- MENU 3
+        ctxManager.createAndBindMenu({
+            menuId: 'userMenu',
+            selector: '[data-type="user"]',
+            defaultTargetType: 'user',
+            headerText: 'User Actions',
+            triggerEvent: 'hover',
+            structure: [
+                { label: "View Profile", action: viewProfileAction },
+                { label: "Send Message", action: (e) => log('Message sent!')}
+            ]
+        });
+
 
 
     } catch (error) {

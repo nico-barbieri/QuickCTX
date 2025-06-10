@@ -253,9 +253,9 @@ class QuickCTX {
         this.menuElement = createElement("div", this.options.classes.container);
 
         Object.assign(this.menuElement.style, {
-            position: 'fixed', // garantees the menu is positioned relative to the viewport
-            zIndex: '10000', // A high default z-index
-            display: 'none', // Start hidden
+            position: "fixed", // garantees the menu is positioned relative to the viewport
+            zIndex: "10000", // A high default z-index
+            display: "none", // Start hidden
         });
 
         document.body.appendChild(this.menuElement);
@@ -519,7 +519,9 @@ class QuickCTX {
                 this.options.classes.open,
                 this.options.classes.opening
             );
-            this._hideMenu(true);
+            const savedTarget = this.currentTargetElement;
+            this._hideMenu(); // Hide any currently active menu before building a new one
+            this.currentTargetElement = savedTarget; // Restore the current target element
             this.activeMenuElement = menuToBuild;
         } else {
             this.activeSubmenus.push(menuToBuild);
@@ -694,6 +696,7 @@ class QuickCTX {
             li.addEventListener("mouseleave", () => clearTimeout(hoverTimeout));
         } else if (command.type === "action") {
             li.addEventListener("click", (event) => {
+
                 event.stopPropagation();
                 if (isDisabled) return;
                 let action = command.action;
@@ -718,7 +721,7 @@ class QuickCTX {
 
                 if (typeof action === "function") {
                     try {
-                        action(this.currentTargetElement, command);
+                        action({ target: this.currentTargetElement, command });
                     } catch (err) {
                         this._log({
                             event: "actionError",
@@ -735,7 +738,7 @@ class QuickCTX {
                             `Error executing action for command "${command.label}": ${err.message}`
                         );
                     }
-                } 
+                }
 
                 this.currentTargetElement?.dispatchEvent(
                     new CustomEvent("QuickCTXActionSelected", {
@@ -893,7 +896,9 @@ class QuickCTX {
                 }, this.options.animations.menuCloseDuration);
             }
         }
+
         this._closeSubmenus(0, instant);
+
         if (instant || !this.activeMenuElement) {
             this.currentTargetElement = null;
             document.removeEventListener("click", this._boundOutsideClick);
@@ -907,14 +912,19 @@ class QuickCTX {
      * @private
      */
     _handleOutsideClick(event) {
-        // This handler now ONLY deals with closing the menu from outside clicks.
+        // If there's no active menu, or the menu is just opening, do nothing.
         if (
             !this.activeMenuElement ||
-            this.menuElement.classList.contains(this.options.classes.opening) ||
-            this.activeMenuElement.contains(event.target)
+            this.menuElement.classList.contains(this.options.classes.opening)
         ) {
             return;
         }
+
+        // If the click is inside the active menu, do nothing.
+        if (this.activeMenuElement.contains(event.target)) {
+            return;
+        }
+
         this._hideMenu();
     }
 
