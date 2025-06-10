@@ -1,8 +1,8 @@
 :root {
-    --background-color: #111218;
-    --background-dark: rgba(248, 249, 250, 0.1);
-    --background-dark-hover: rgba(248, 249, 250, 0.2);
-    --primary-color: #3892db;
+    --background-color: #02080b;
+    --background-dark: rgba(248, 249, 250, 0.075);
+    --background-dark-hover: rgba(248, 249, 250, 0.1);
+    --primary-color: #2b93b2;
 
     --color-neutral-0: #ffffff;
     --color-neutral-1: #f8f9fa;
@@ -11,10 +11,17 @@
     --color-neutral-4: #495057;
     --color-neutral-5: #343a40;
     --color-neutral-6: #212529;
-    --color-neutral-7: #000000;
+    --color-neutral-7: #121416;
+    --color-neutral-8: #080909; 
+    --color-neutral-9: #000000;
 
     --border-radius: 8px;
-    --border-radius-large: 12px;
+    --border-radius-large: 16px;
+
+    --space-s: 8px;
+    --space-m: 16px;
+    --space-l: 24px;
+    --space-xl: 32px;
 
     line-height: 1.5;
 }
@@ -28,7 +35,7 @@
 @property --scrollbar-thumb-color {
     syntax: "<color>";
     inherits: true;
-    initial-value: rgba(248, 249, 250, 0.1);
+    initial-value: rgba(248, 249, 250, 0.075);
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -53,7 +60,7 @@
 
 .custom-scrollbar:hover {
     --scrollbar-track-color: transparent rgba(248, 249, 250, 0.1);
-    --scrollbar-thumb-color: #3892db;
+    --scrollbar-thumb-color: #2b93b2;
 }
 
 * {
@@ -68,13 +75,22 @@ body {
     color: var(--color-neutral-1);
 }
 
+.card {
+    background-color: var(--background-dark);
+    border-radius: var(--border-radius-large);
+    border: 1px solid var(--background-dark-hover);
+    padding: var(--space-xl);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
 .main-container {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100dvh;
     width: 100dvw;
-    padding: 0;
+    padding: var(--space-l);
     margin: 0;
 }
 
@@ -82,10 +98,6 @@ body {
     width: 100%;
     max-width: 900px;
     margin: auto;
-    background: var(--background-dark);
-    padding: 2rem;
-    border-radius: var(--border-radius-large);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 h1 {
@@ -112,7 +124,7 @@ h1 {
 }
 
 .test-box {
-    border: 2px dashed var(--background-dark);
+    border: 1px dashed var(--background-dark);
     border-radius: var(--border-radius);
     padding: 1.5rem;
     text-align: center;
@@ -126,8 +138,8 @@ h1 {
 }
 
 .log-area {
-    background-color: #141414;
-    color: #e9ecef;
+    background-color: var(--color-neutral-8);
+    color: var(--color-neutral-1);
     font-family: 'Roboto Mono', monospace;
     font-size: 0.875rem;
     padding: 1.5rem;
