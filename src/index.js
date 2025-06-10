@@ -1,5 +1,5 @@
-import MenuCommand from './MenuCommand.js';
-import QuickCTX from './QuickCTX.js';
+import MenuCommand from './classes/MenuCommand.js';
+import QuickCTX from './classes/QuickCTX.js';
 
 import './styles/default.css';
 

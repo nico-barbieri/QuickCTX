@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,97 +9,43 @@
     <!-- Basic style and font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto+Mono&display=swap"
+        rel="stylesheet">
 
     <!-- Referencing the default style from src directly in the test page-->
     <link rel="stylesheet" href="../src/styles/default.css">
 
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
-            color: #212529;
-            padding: 2rem;
-        }
-        .main-container {
-            max-width: 900px;
-            margin: auto;
-            background: #fff;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.05);
-        }
-        h1 {
-            font-size: 2rem;
-            font-weight: 600;
-            text-align: center;
-            border-bottom: 1px solid #dee2e6;
-            padding-bottom: 1rem;
-            margin-bottom: 2rem;
-        }
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 500;
-            margin-bottom: 1rem;
-            color: #495057;
-        }
-        .test-area {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        .test-box {
-            border: 2px dashed #ced4da;
-            border-radius: 8px;
-            padding: 1.5rem;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s;
-        }
-        .test-box:hover {
-            border-color: #0d6efd;
-            background-color: #f8f9fa;
-        }
-        .log-area {
-            background-color: #212529;
-            color: #e9ecef;
-            font-family: 'Roboto Mono', monospace;
-            font-size: 0.875rem;
-            padding: 1.5rem;
-            border-radius: 8px;
-            min-height: 200px;
-            max-height: 300px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            overflow-y: auto;
-        }
-    </style>
+    <link rel="stylesheet" href="./index.css">
+
+
 </head>
+
 <body>
-
     <div class="main-container">
-        <h1>QuickCTX - Test Page</h1>
+        <div class="main-wrapper">
+            <h1>QuickCTX - Test Page</h1>
 
-        <h2 class="section-title">Test Area</h2>
-        <div class="test-area">
-            <div class="test-box" data-id="doc-01" data-type="document">
-                <h3>Document</h3>
-                <p>Right click here</p>
+            <h2 class="section-title">Test Area</h2>
+            <div class="test-area">
+                <div class="test-box" data-id="doc-01" data-type="document">
+                    <h3>Document</h3>
+                    <p>Right click here</p>
+                </div>
+                <div class="test-box" data-id="img-01" data-type="image">
+                    <h3>Image</h3>
+                    <p>Left click here</p>
+                </div>
+                <div class="test-box" data-id="user-01" data-type="user">
+                    <h3>User</h3>
+                    <p>Hover here</p>
+                </div>
             </div>
-            <div class="test-box" data-id="img-01" data-type="image">
-                <h3>Image</h3>
-                <p>Left click here</p>
-            </div>
-            <div class="test-box" data-id="user-01" data-type="user">
-                <h3>User</h3>
-                <p>Hover here</p>
-            </div>
+
+            <h2 class="section-title">Log & Output</h2>
+            <pre class="log-area custom-scrollbar" id="logArea"></pre>
         </div>
-
-        <h2 class="section-title">Log & Output</h2>
-        <pre class="log-area" id="logArea">Waiting for initialization...</pre>
     </div>
+
 
     <!-- Include the QuickCTX library file directly from source, for test purpose -->
 
@@ -108,4 +55,5 @@
     <script type="module" src="app.js"></script>
 
 </body>
+
 </html>
