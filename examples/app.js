@@ -30,16 +30,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ctxManager.setLogger(log);
         ctxManager.setLoggerIsEnabled(true);
 
-        const openAction = (target) => {
-            log(`Action 'Open' executed on element with ID: ${target.dataset.id}`);
+        const openAction = (event) => {
+            log(`Action 'Open' executed on element with ID: ${event.target.id}`);
         };
 
-        const editAction = (target) => {
-            log(`Action 'Edit' executed on element with ID: ${target.dataset.id}`);
+        const editAction = (event) => {
+            log(`Action 'Edit' executed on element with ID: ${event.target.id}`);
         };
 
-        const deleteAction = (target) => {
-            log(`Action 'Delete' executed on element with ID: ${target.dataset.id}`);
+        const deleteAction = (event) => {
+            log(`Action 'Delete' executed on element with ID: ${event.target.id}`);
         };
 
         ctxManager.createAndBindMenu({
