@@ -1,13 +1,44 @@
+/*VARIABLES*/
 .quickctx-container {
-    background-color: #ffffff;
-    border: 1px solid #cccccc;
-    box-shadow: 2px 2px 5px rgba(0,0,0,0.15);
-    min-width: 180px;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    color: #333333;
-    border-radius: 4px;
-    padding: 4px 0;
+    --quickctx-background: #ffffff;
+    --quickctx-element-background-hover: #f0f0f0;
+    --quickctx-element-background-disabled: #f9f9f9;
+
+    --quickctx-header-background: #f7f7f7;
+    --quickctx-header-text-color: #555555;
+
+    --quickctx-text-color: #333333;
+    --quickctx-text-color-hover: #000000;
+    --quickctx-text-color-disabled: #aaaaaa;
+
+    --quickctx-border-size: 1px;
+    --quickctx-border-color: #cccccc;
+    --quickctx-border-color-hover: #cccccc;
+
+    --quickctx-container-padding: 4px 0;
+    --quickctx-element-padding: 8px 12px 8px 24px;
+    --quickctx-header-padding: 6px 12px;
+
+    --quickctx-border-radius: 4px;
+
+    --quickctx-min-width: 180px;
+
+    --quickctx-font-size: 14px;
+    --quickctx-font-family: Arial, sans-serif;
+
+    --quickctx-shadow: 2px 2px 5px rgba(0,0,0,0.15);
+}
+
+.quickctx-container {
+    background-color: var(--quickctx-background);
+    border: var(--quickctx-border-size) solid var(--quickctx-border-color);
+    box-shadow: var(--quickctx-shadow);
+    min-width: var(--quickctx-min-width);
+    font-family: var(--quickctx-font-family);
+    font-size: var(--quickctx-font-size);
+    color: var(--quickctx-text-color);
+    border-radius: var(--quickctx-border-radius);
+    padding: var(--quickctx-container-padding);
     transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
     opacity: 0;
     transform: translateY(10px);
@@ -25,9 +56,9 @@
 
 .quickctx-container .quickctx-header {
     font-weight: bold;
-    padding: 6px 12px;
-    color: #555555;
-    border-bottom: 1px solid #eeeeee;
+    padding: var(--quickctx-header-padding);
+    color: var(--quickctx-header-text-color);
+    border-bottom: var(--quickctx-border-size) solid var(--quickctx-border-color);
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -41,7 +72,7 @@
 }
 
 .quickctx-container .quickctx-item {
-    padding: 8px 12px 8px 30px;
+    padding: var(--quickctx-element-padding);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -49,12 +80,12 @@
 }
 
 .quickctx-container .quickctx-item:hover {
-    background-color: #f0f0f0;
-    color: #000000;
+    background-color: var(--quickctx-element-background-hover);
+    color: var(--quickctx-text-color-hover);
 }
 
 .quickctx-container .quickctx-item.quickctx-item--disabled {
-    color: #aaaaaa;
+    color: var(--quickctx-text-color-disabled);
     cursor: not-allowed;
     background-color: transparent !important;
 }
@@ -66,24 +97,24 @@
 }
 
 .quickctx-container .quickctx-separator {
-    height: 1px;
-    background-color: #e0e0e0;
+    height: var(--quickctx-border-size);
+    background-color: var(--quickctx-border-color);
     margin: 4px 0;
     padding: 0;
     cursor: default;
 }
 
 .quickctx-container .quickctx-separator:hover {
-    background-color: #e0e0e0;
+    background-color: var(--quickctx-border-color);
 }
 
 .quickctx-container .quickctx-subheader {
-    padding: 6px 12px;
+    padding: var(--quickctx-header-padding);
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
-    color: #6c757d;
-    background-color: #f8f9fa;
+    color: var(--quickctx-header-text-color) !important;
+    background-color: var(--quickctx-header-background) !important;
     height: auto; /* Override default separator height */
     background-image: none; /* Override default separator line */
 }
@@ -94,16 +125,16 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.8em;
-    color: #666666;
+    color: var(--quickctx-text-color);
 }
 
 .quickctx-container .quickctx-item.quickctx-sublist:hover .submenu-arrow {
-    color: #000000;
+    color: var(--quickctx-text-color-hover);
 }
 
 .quickctx-container.submenu {
-    box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
-    border-left: 1px solid #ddd;
+    box-shadow: var(--quickctx-shadow);
+    border-left: var(--quickctx-border-size) solid var(--quickctx-border-color);
     opacity: 1;
     transform: translateY(0);
 }

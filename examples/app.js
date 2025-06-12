@@ -2,6 +2,37 @@ import QuickCTX from '../src/classes/QuickCTX.js';
 import MenuCommand from '../src/classes/MenuCommand.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    const themeToggleButton = document.getElementById('themeToggleButton');
+    const bodyElement = document.body;
+
+    // Function to apply the theme
+    const applyTheme = (theme) => {
+        if (theme === 'dark') {
+            bodyElement.classList.add('dark-theme');
+        } else {
+            bodyElement.classList.remove('dark-theme');
+        }
+        localStorage.setItem('quickctx-theme-preference', theme);
+    };
+
+    // Add click event to the toggle button
+    themeToggleButton.addEventListener('click', () => {
+        const isDarkMode = bodyElement.classList.contains('dark-theme');
+        applyTheme(isDarkMode ? 'light' : 'dark');
+    });
+
+    // Check for saved theme in localStorage or user's system preference on load
+    const savedTheme = localStorage.getItem('quickctx-theme-preference');
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme) {
+        applyTheme(savedTheme);
+    } else {
+        applyTheme(prefersDark ? 'dark' : 'light');
+    }
+
+
     const logArea = document.getElementById('logArea');
     const testBoxes = document.querySelectorAll('.test-box');
 
@@ -25,6 +56,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const ctxManager = new QuickCTX({
             trigger: 'contextmenu', 
             globalFilterStrategy: 'disable', 
+            classes: {
+                container: 'quickctx-container ctxstyle-override',
+                header: 'quickctx-header',
+                list: 'quickctx-list',
+                item: 'quickctx-item',
+                separator: 'quickctx-separator',
+                sublist: 'quickctx-sublist',
+                disabled: 'quickctx-item--disabled',
+                hidden: 'quickctx-item--hidden',
+                iconPrefix: 'quickctx-icon-',
+                opening: 'quickctx--opening',
+                open: 'quickctx--open',
+                closing: 'quickctx--closing'
+            },
         });
 
         ctxManager.setLogger(log);
@@ -69,7 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
             menuId: 'imageMenu',
             selector: '[data-type="image"]',
             defaultTargetType: 'image',
-            headerText: 'Image Actions',
+            headerText: null /* 'Image Actions' */,
+            triggerEvent: 'click',
             structure: [
                 { label: "Edit Image", action: editAction },
                 { label: "Apply Filter", action: applyFilterAction },
@@ -77,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 {
                     label: "Share",
                     // to create a submenu, we use a subCommands array
+                    type: 'sublist',
                     subCommands: [
                         { label: "Share via Email", action: shareEmailAction },
                         { label: "Copy Link", action: (e) => log('Link copied!') }
