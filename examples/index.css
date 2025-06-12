@@ -267,7 +267,7 @@ h1 {
     --quickctx-element-padding: var(--space-xs) var(--space-base) var(--space-xs) var(--space-l);
 
     --quickctx-header-text-color: var(--primary-color);
-    --quickctx-header-background: var(--element-background);
+    --quickctx-header-background: var(--secondary-color-lighter);
 }
 
 .dark-theme .quickctx-container.ctxstyle-override {

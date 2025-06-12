@@ -1,6 +1,8 @@
 import { createElement } from "../utils/utils.js";
 import MenuCommand from "./MenuCommand.js";
 
+// QuickCTX input definitions
+
 /**
  * Configurable CSS classes for the context menu elements.
  * @typedef {object} QuickCTXClassesOptions
@@ -31,14 +33,14 @@ import MenuCommand from "./MenuCommand.js";
 /**
  * Configuration options for the QuickCTX context menu.
  * @typedef {object} QuickCTXOptions
- * @property {string} [trigger='contextmenu'] - The default trigger event for all menus ('contextmenu', 'click', 'dblclick', 'hover').
+ * @property {string} [defaultTrigger='contextmenu'] - The default trigger event for all menus ('contextmenu', 'click', 'dblclick', 'hover').
  * @property {'closest' | 'deepest'} [overlapStrategy='closest'] - Strategy for finding the target element when multiple are nested.
  * @property {'hide' | 'disable'} [globalFilterStrategy='hide'] - Global filter strategy for irrelevant commands.
  * @property {QuickCTXClassesOptions} [classes] - Object containing customizable CSS classes.
  * @property {QuickCTXAnimationsOptions} [animations] - Object containing options for animations.
  */
 
-// MAIN PARAMS DEFINITION
+// Main params definitions
 
 /**
  * Defines the structure of a single item used in the `createAndBindMenu` helper.
@@ -89,10 +91,8 @@ class QuickCTX {
      * @param {QuickCTXOptions} [options={}] - Global configuration options for the library.
      */
     constructor(options = {}) {
-        this.defaultTrigger = "contextmenu"; // default trigger event
-
         const defaultOptions = {
-            trigger: this.defaultTrigger, //choice of trigger
+            defaultTrigger: "contextmenu", //choice of trigger
             overlapStrategy: "closest", // closest or deepest
             globalFilterStrategy: "hide", // hide or gray out filtered commands
             classes: {
@@ -211,6 +211,32 @@ class QuickCTX {
     }
 
     /**
+     * Updates the library's options at runtime and re-initializes event listeners.
+     * @param {QuickCTXOptions} [newOptions={}] - The new options to merge with the current configuration.
+     */
+    updateOptions(newOptions = {}) {
+        this.options = {
+            ...this.options,
+            ...newOptions,
+            classes: { ...this.options.classes, ...(newOptions.classes || {}) },
+            animations: {
+                ...this.options.animations,
+                ...(newOptions.animations || {}),
+            },
+        };
+
+        this._log({
+            event: "updateOptions",
+            message: "Updating options...",
+            data: this.options,
+        });
+        // Re-setup event listeners to reflect potential changes in the default trigger.
+        this._setupEventListeners();
+    }
+
+    /********** LOG **********/
+
+    /**
      * Sets a custom logger function for logging messages.
      * @param {Function} logger - A function that takes a message and optional data to log.
      */
@@ -245,6 +271,8 @@ class QuickCTX {
         this.logger({ ...logContent, timestamp: new Date() });
     }
 
+    /********** INIT **********/
+
     /**
      * Initializes the library, creates the main menu element, sets up event listeners,
      * and parses any HTML-defined menus.
@@ -268,6 +296,8 @@ class QuickCTX {
         this._log({ event: "init", message: "QuickCTX initialized" });
     }
 
+    /********** HANDLING EVENTS **********/
+
     /**
      * Sets up global event listeners based on configured triggers. This method also removes old
      * listeners before adding new ones, making it safe to call on option updates.
@@ -287,7 +317,7 @@ class QuickCTX {
         );
 
         // Collect all unique triggers from the default options and all registered menu configurations.
-        const activeTriggers = new Set([this.options.trigger]);
+        const activeTriggers = new Set([this.options.defaultTrigger]);
         Object.values(this.menuConfigurations).forEach((config) => {
             if (config.triggerEvent) activeTriggers.add(config.triggerEvent);
         });
@@ -315,29 +345,10 @@ class QuickCTX {
     }
 
     /**
-     * Updates the library's options at runtime and re-initializes event listeners.
-     * @param {ContextMenuOptions} [newOptions={}] - The new options to merge with the current configuration.
+     * Handles the trigger event for showing the context menu.
+     * @param {Event} event - The event that triggered the context menu (e.g., 'contextmenu', 'click', 'mouseover').
+     * @private
      */
-    updateOptions(newOptions = {}) {
-        this.options = {
-            ...this.options,
-            ...newOptions,
-            classes: { ...this.options.classes, ...(newOptions.classes || {}) },
-            animations: {
-                ...this.options.animations,
-                ...(newOptions.animations || {}),
-            },
-        };
-
-        this._log({
-            event: "updateOptions",
-            message: "Updating options...",
-            data: this.options,
-        });
-        // Re-setup event listeners to reflect potential changes in the default trigger.
-        this._setupEventListeners();
-    }
-
     _handleTriggerEvent(event) {
         if (this.menuElement.classList.contains(this.options.classes.closing))
             return; // Prevent handling if the menu is currently closing. NOTE: add class assignation handling logic
@@ -387,7 +398,8 @@ class QuickCTX {
 
         const eventTriggerType =
             event.type === "mouseover" ? "hover" : event.type;
-        const expectedTrigger = config.triggerEvent || this.options.trigger;
+        const expectedTrigger =
+            config.triggerEvent || this.options.defaultTrigger;
 
         if (eventTriggerType !== expectedTrigger) {
             if (
@@ -460,6 +472,30 @@ class QuickCTX {
         if (event.key === "Escape") this._hideMenu();
     }
 
+    /**
+     * Handles document clicks to close the menu if the click is outside.
+     * @param {Event} event - The click event.
+     * @private
+     */
+    _handleOutsideClick(event) {
+        // If there's no active menu, or the menu is just opening, do nothing.
+        if (
+            !this.activeMenuElement ||
+            this.menuElement.classList.contains(this.options.classes.opening)
+        ) {
+            return;
+        }
+
+        // If the click is inside the active menu, do nothing.
+        if (this.activeMenuElement.contains(event.target)) {
+            return;
+        }
+
+        this._hideMenu();
+    }
+
+    /********** OPEN/CLOSE LOGIC **********/
+
     _scheduleHoverHide() {
         this._cancelHoverHide();
         this.hoverHideTimeout = setTimeout(() => {
@@ -474,120 +510,222 @@ class QuickCTX {
         }
     }
 
-    /**
-     * Constructs the DOM for a menu based on its configuration.
+    _scheduleSubmenuOpen(command, parentLi, targetElement) {
+        this._cancelSubmenuOpen(command);
+        command.openTimeout = setTimeout(() => {
+            this._openSubmenu(command, parentLi, targetElement);
+        }, this.options.animations.submenuOpenDelay);
+    }
+
+    _cancelSubmenuOpen(command) {
+        if (command.openTimeout) {
+            clearTimeout(command.openTimeout);
+            command.openTimeout = null;
+        }
+    }
+
+    _openSubmenu(command, parentLi, targetElement) {
+        if (
+            command.submenuElement?.classList.contains(
+                this.options.classes.open
+            )
+        )
+            return;
+        let subMenuEl = command.submenuElement;
+        if (!subMenuEl || !document.body.contains(subMenuEl)) {
+            subMenuEl = createElement("div", [
+                this.options.classes.container,
+                "submenu",
+            ]);
+            Object.assign(subMenuEl.style, {
+                position: "fixed",
+                zIndex: "10001",
+                display: "none",
+            });
+            document.body.appendChild(subMenuEl);
+            command.submenuElement = subMenuEl;
+        }
+        // Add listeners to the submenu itself to prevent it from closing when entered
+        subMenuEl.addEventListener("mouseenter", () =>
+            this._cancelSubmenuClose(command)
+        );
+        subMenuEl.addEventListener("mouseleave", () =>
+            this._scheduleSubmenuClose(command)
+        );
+
+        const rect = parentLi.getBoundingClientRect();
+        this._buildAndShowMenu(
+            { commands: command.subCommands },
+            targetElement,
+            targetElement.dataset.customCtxmenuType || "default",
+            rect.right,
+            rect.top,
+            subMenuEl,
+            command
+        );
+    }
+
+    _scheduleSubmenuClose(command) {
+        this._cancelSubmenuClose(command);
+        command.closeTimeout = setTimeout(() => {
+            const submenuInfo = this.activeSubmenus.find(
+                (s) => s.parentCommand === command
+            );
+            if (submenuInfo) {
+                this._closeSingleSubmenu(submenuInfo);
+                this.activeSubmenus = this.activeSubmenus.filter(
+                    (s) => s.parentCommand !== command
+                );
+            }
+        }, this.options.animations.submenuCloseDelay);
+    }
+
+    _cancelSubmenuClose(command) {
+        if (command.closeTimeout) {
+            clearTimeout(command.closeTimeout);
+            command.closeTimeout = null;
+        }
+    }
+
+    _closeSingleSubmenu(submenuInfo, instant = false) {
+        const submenu = submenuInfo.element;
+        if (!submenu) return;
+        // Clean up its listeners
+        submenu.removeEventListener("mouseenter", this._cancelSubmenuClose);
+        submenu.removeEventListener("mouseleave", this._scheduleSubmenuClose);
+        if (instant) {
+            if (submenu.parentElement) document.body.removeChild(submenu);
+        } else {
+            submenu.classList.remove(this.options.classes.open);
+            submenu.classList.add(this.options.classes.closing);
+            setTimeout(() => {
+                if (submenu.parentElement) document.body.removeChild(submenu);
+            }, this.options.animations.menuCloseDuration);
+        }
+    }
+
+    _closeSiblingSubmenus(command) {
+        for (let i = this.activeSubmenus.length - 1; i >= 0; i--) {
+            const submenuInfo = this.activeSubmenus[i];
+            // Check if submenu's parent is the current command
+            let isChild = false;
+            let current = command;
+            while (current && current.parentCommand) {
+                if (current.parentCommand === submenuInfo.parentCommand) {
+                    isChild = true;
+                    break;
+                }
+                current = current.parentCommand;
+            }
+            if (submenuInfo.parentCommand !== command && !isChild) {
+                this._closeSingleSubmenu(submenuInfo);
+                this.activeSubmenus.splice(i, 1);
+            }
+        }
+    }
+
+        /**
+     * Recursively closes open submenus.
      * @private
      */
-    _buildAndShowMenu(
-        config,
-        targetElement,
-        targetType,
-        x,
-        y,
-        parentMenuElement = null,
-        parentCommand = null
-    ) {
+    _closeSubmenus(fromLevel = 0, instant = false) {
+        while (this.activeSubmenus.length > fromLevel) {
+            const submenu = this.activeSubmenus.pop();
+            if (!submenu) continue;
+            const close = () => {
+                submenu.style.display = "none";
+                submenu.classList.remove(
+                    this.options.classes.open,
+                    this.options.classes.opening,
+                    this.options.classes.closing
+                );
+                submenu.innerHTML = "";
+                if (submenu.parentElement === document.body)
+                    document.body.removeChild(submenu);
+            };
+            if (instant) close();
+            else {
+                submenu.classList.remove(this.options.classes.open);
+                submenu.classList.add(this.options.classes.closing);
+                setTimeout(close, this.options.animations.menuCloseDuration);
+            }
+        }
+    }
+
+    _hideMenu(instant = false) {
+        // logic to hide the currently active menu
+
         this._log({
-            event: "buildMenu",
-            message: `Building menu for target type: ${targetType}`,
+            event: "hideMenu",
+            message: `Hiding menu: ${
+                this.activeMenuElement ? this.activeMenuElement.id : "none"
+            }`,
             data: {
-                targetElementId: targetElement.id || "unknown",
-                parentMenuId: parentMenuElement ? parentMenuElement.id : null,
+                activeMenuId: this.activeMenuElement
+                    ? this.activeMenuElement.id
+                    : null,
             },
         });
 
-        // If a parent menu is provided, we are building a submenu.
-        const menuToBuild = parentMenuElement || this.menuElement;
-        if (!parentMenuElement) {
-            if (this.menuHideTimeout) {
-                clearTimeout(this.menuHideTimeout);
-                this.menuHideTimeout = null;
-            }
-            this.menuElement.classList.remove(
-                this.options.classes.closing,
-                this.options.classes.open,
-                this.options.classes.opening
+        this._closeSubmenus(0, instant);
+
+        document.removeEventListener("click", this._boundOutsideClick, true);
+        document.removeEventListener("keydown", this._boundHandleKeydown);
+
+        if (this.currentTargetElement) {
+            this.currentTargetElement.removeEventListener(
+                "mouseleave",
+                this._boundHandleHoverLeave
             );
-            const savedTarget = this.currentTargetElement;
-            this._hideMenu(); // Hide any currently active menu before building a new one
-            this.currentTargetElement = savedTarget; // Restore the current target element
-            this.activeMenuElement = menuToBuild;
-        } else {
-            this.activeSubmenus.push(menuToBuild);
-            menuToBuild.classList.remove(
-                this.options.classes.closing,
-                this.options.classes.open,
-                this.options.classes.opening
+            this.currentTargetElement.removeEventListener(
+                "mouseenter",
+                this._boundHandleHoverEnter
             );
         }
+        if (this.activeMenuElement) {
+            this.activeMenuElement.removeEventListener(
+                "mouseleave",
+                this._boundHandleHoverLeave
+            );
+            this.activeMenuElement.removeEventListener(
+                "mouseenter",
+                this._boundHandleHoverEnter
+            );
+        }
+        this._cancelHoverHide();
 
-        menuToBuild.innerHTML = "";
+        if (this.menuHideTimeout) clearTimeout(this.menuHideTimeout);
 
-        if (!parentMenuElement) {
-            const headerTextTemplate = config.headerTextTemplate;
-            const headerText =
-                headerTextTemplate?.replace(/{type}/g, targetType) || "";
-
-            if (headerText) {
-                menuToBuild.appendChild(
-                    createElement(
-                        "div",
-                        this.options.classes.header,
-                        {},
-                        headerText
-                    )
+        if (this.activeMenuElement) {
+            const menuToHide = this.activeMenuElement;
+            const hide = () => {
+                menuToHide.style.display = "none";
+                menuToHide.classList.remove(
+                    this.options.classes.open,
+                    this.options.classes.opening,
+                    this.options.classes.closing
                 );
+                menuToHide.innerHTML = "";
+                if (this.activeMenuElement === menuToHide)
+                    this.activeMenuElement = null;
+            };
+            if (instant || this.options.animations.menuCloseDuration === 0) {
+                hide();
+            } else {
+                menuToHide.classList.remove(
+                    this.options.classes.open,
+                    this.options.classes.opening
+                );
+                menuToHide.classList.add(this.options.classes.closing);
+                this.menuHideTimeout = setTimeout(() => {
+                    hide();
+                    this.menuHideTimeout = null;
+                }, this.options.animations.menuCloseDuration);
             }
         }
-
-        const ul = createElement("ul", this.options.classes.list);
-        let visibleItems = 0;
-        config.commands.forEach((command) => {
-            const typeMatch =
-                command.targetTypes.includes("*") ||
-                command.targetTypes.includes(targetType);
-            if (!typeMatch && command.visible) return;
-            if (!command.visible) return;
-            let effectiveDisabled = command.disabled;
-            if (!typeMatch) {
-                if (
-                    (config.filterStrategy ||
-                        this.options.globalFilterStrategy) === "hide"
-                )
-                    return;
-                effectiveDisabled = true;
-            }
-            ul.appendChild(
-                this._createMenuItemDOM(
-                    command,
-                    targetElement,
-                    effectiveDisabled,
-                    parentMenuElement !== null
-                )
-            );
-            visibleItems++;
-        });
-        if (visibleItems === 0) {
-            if (!parentMenuElement) this._hideMenu(true);
-            else parentCommand?.element.classList.remove("has-submenu-arrow");
-            return null;
-        }
-        menuToBuild.appendChild(ul);
-
-        this._showMenuDOM(
-            menuToBuild,
-            x,
-            y,
-            targetElement,
-            parentMenuElement !== null,
-            parentCommand
-        );
-        if (!parentMenuElement) {
-            document.addEventListener("click", this._boundOutsideClick, true);
-            document.addEventListener("keydown", this._boundHandleKeydown);
-        }
-        return menuToBuild;
     }
+
+    /********** DOM BUILD **********/
 
     /**
      * Creates the DOM element (LI) for a single menu command.
@@ -783,112 +921,119 @@ class QuickCTX {
         return li;
     }
 
-    _scheduleSubmenuOpen(command, parentLi, targetElement) {
-        this._cancelSubmenuOpen(command);
-        command.openTimeout = setTimeout(() => {
-            this._openSubmenu(command, parentLi, targetElement);
-        }, this.options.animations.submenuOpenDelay);
-    }
-    _cancelSubmenuOpen(command) {
-        if (command.openTimeout) {
-            clearTimeout(command.openTimeout);
-            command.openTimeout = null;
-        }
-    }
-    _openSubmenu(command, parentLi, targetElement) {
-        if (
-            command.submenuElement?.classList.contains(
-                this.options.classes.open
-            )
-        )
-            return;
-        let subMenuEl = command.submenuElement;
-        if (!subMenuEl || !document.body.contains(subMenuEl)) {
-            subMenuEl = createElement("div", [
-                this.options.classes.container,
-                "submenu",
-            ]);
-            Object.assign(subMenuEl.style, {
-                position: "fixed",
-                zIndex: "10001",
-                display: "none",
-            });
-            document.body.appendChild(subMenuEl);
-            command.submenuElement = subMenuEl;
-        }
-        // Add listeners to the submenu itself to prevent it from closing when entered
-        subMenuEl.addEventListener("mouseenter", () =>
-            this._cancelSubmenuClose(command)
-        );
-        subMenuEl.addEventListener("mouseleave", () =>
-            this._scheduleSubmenuClose(command)
-        );
+    /**
+     * Constructs the DOM for a menu based on its configuration.
+     * @private
+     */
+    _buildAndShowMenu(
+        config,
+        targetElement,
+        targetType,
+        x,
+        y,
+        parentMenuElement = null,
+        parentCommand = null
+    ) {
+        this._log({
+            event: "buildMenu",
+            message: `Building menu for target type: ${targetType}`,
+            data: {
+                targetElementId: targetElement.id || "unknown",
+                parentMenuId: parentMenuElement ? parentMenuElement.id : null,
+            },
+        });
 
-        const rect = parentLi.getBoundingClientRect();
-        this._buildAndShowMenu(
-            { commands: command.subCommands },
-            targetElement,
-            targetElement.dataset.customCtxmenuType || "default",
-            rect.right,
-            rect.top,
-            subMenuEl,
-            command
-        );
-    }
-    _scheduleSubmenuClose(command) {
-        this._cancelSubmenuClose(command);
-        command.closeTimeout = setTimeout(() => {
-            const submenuInfo = this.activeSubmenus.find(
-                (s) => s.parentCommand === command
+        // If a parent menu is provided, we are building a submenu.
+        const menuToBuild = parentMenuElement || this.menuElement;
+        if (!parentMenuElement) {
+            if (this.menuHideTimeout) {
+                clearTimeout(this.menuHideTimeout);
+                this.menuHideTimeout = null;
+            }
+            this.menuElement.classList.remove(
+                this.options.classes.closing,
+                this.options.classes.open,
+                this.options.classes.opening
             );
-            if (submenuInfo) {
-                this._closeSingleSubmenu(submenuInfo);
-                this.activeSubmenus = this.activeSubmenus.filter(
-                    (s) => s.parentCommand !== command
+            const savedTarget = this.currentTargetElement;
+            this._hideMenu(); // Hide any currently active menu before building a new one
+            this.currentTargetElement = savedTarget; // Restore the current target element
+            this.activeMenuElement = menuToBuild;
+        } else {
+            this.activeSubmenus.push(menuToBuild);
+            menuToBuild.classList.remove(
+                this.options.classes.closing,
+                this.options.classes.open,
+                this.options.classes.opening
+            );
+        }
+
+        menuToBuild.innerHTML = "";
+
+        if (!parentMenuElement) {
+            const headerTextTemplate = config.headerTextTemplate;
+            const headerText =
+                headerTextTemplate?.replace(/{type}/g, targetType) || "";
+
+            if (headerText) {
+                menuToBuild.appendChild(
+                    createElement(
+                        "div",
+                        this.options.classes.header,
+                        {},
+                        headerText
+                    )
                 );
             }
-        }, this.options.animations.submenuCloseDelay);
-    }
-    _cancelSubmenuClose(command) {
-        if (command.closeTimeout) {
-            clearTimeout(command.closeTimeout);
-            command.closeTimeout = null;
         }
-    }
-    _closeSingleSubmenu(submenuInfo, instant = false) {
-        const submenu = submenuInfo.element;
-        if (!submenu) return;
-        // Clean up its listeners
-        submenu.removeEventListener("mouseenter", this._cancelSubmenuClose);
-        submenu.removeEventListener("mouseleave", this._scheduleSubmenuClose);
-        if (instant) {
-            if (submenu.parentElement) document.body.removeChild(submenu);
-        } else {
-            submenu.classList.remove(this.options.classes.open);
-            submenu.classList.add(this.options.classes.closing);
-            setTimeout(() => {
-                if (submenu.parentElement) document.body.removeChild(submenu);
-            }, this.options.animations.menuCloseDuration);
-        }
-    }
-    _closeSiblingSubmenus(command) {
-        for (let i = this.activeSubmenus.length - 1; i >= 0; i--) {
-            const submenuInfo = this.activeSubmenus[i];
-            // Check if submenu's parent is the current command
-            let isChild = false;
-            let current = command;
-            while (current && current.parentCommand) {
-                if (current.parentCommand === submenuInfo.parentCommand) {
-                    isChild = true;
-                    break;
-                }
-                current = current.parentCommand;
+
+        const ul = createElement("ul", this.options.classes.list);
+        let visibleItems = 0;
+        config.commands.forEach((command) => {
+            const typeMatch =
+                command.targetTypes.includes("*") ||
+                command.targetTypes.includes(targetType);
+            if (!typeMatch && command.visible) return;
+            if (!command.visible) return;
+            let effectiveDisabled = command.disabled;
+            if (!typeMatch) {
+                if (
+                    (config.filterStrategy ||
+                        this.options.globalFilterStrategy) === "hide"
+                )
+                    return;
+                effectiveDisabled = true;
             }
-            if (submenuInfo.parentCommand !== command && !isChild) {
-                this._closeSingleSubmenu(submenuInfo);
-                this.activeSubmenus.splice(i, 1);
-            }
+            ul.appendChild(
+                this._createMenuItemDOM(
+                    command,
+                    targetElement,
+                    effectiveDisabled,
+                    parentMenuElement !== null
+                )
+            );
+            visibleItems++;
+        });
+        if (visibleItems === 0) {
+            if (!parentMenuElement) this._hideMenu(true);
+            else parentCommand?.element.classList.remove("has-submenu-arrow");
+            return null;
         }
+        menuToBuild.appendChild(ul);
+
+        this._showMenuDOM(
+            menuToBuild,
+            x,
+            y,
+            targetElement,
+            parentMenuElement !== null,
+            parentCommand
+        );
+        if (!parentMenuElement) {
+            document.addEventListener("click", this._boundOutsideClick, true);
+            document.addEventListener("keydown", this._boundHandleKeydown);
+        }
+        return menuToBuild;
     }
 
     /**
@@ -932,127 +1077,136 @@ class QuickCTX {
         menuDomElement.classList.add(this.options.classes.open);
     }
 
+    /********** MENU CREATION AND CONFIG **********/
+
     /**
-     * Recursively closes open submenus.
-     * @private
+     * Registers a named action that can be referenced by commands.
+     * @param {string} actionName - The unique name for the action.
+     * @param {Function} callback - The function to execute. It receives `(targetElement, command)`.
      */
-    _closeSubmenus(fromLevel = 0, instant = false) {
-        while (this.activeSubmenus.length > fromLevel) {
-            const submenu = this.activeSubmenus.pop();
-            if (!submenu) continue;
-            const close = () => {
-                submenu.style.display = "none";
-                submenu.classList.remove(
-                    this.options.classes.open,
-                    this.options.classes.opening,
-                    this.options.classes.closing
-                );
-                submenu.innerHTML = "";
-                if (submenu.parentElement === document.body)
-                    document.body.removeChild(submenu);
-            };
-            if (instant) close();
-            else {
-                submenu.classList.remove(this.options.classes.open);
-                submenu.classList.add(this.options.classes.closing);
-                setTimeout(close, this.options.animations.menuCloseDuration);
-            }
+    registerAction(actionName, callback) {
+        if (typeof callback !== "function" && callback !== null) {
+            console.error(
+                `Callback for action "${actionName}" must be a function or null.`
+            );
+            return;
         }
+        this.registeredActions[actionName] = callback;
     }
 
-    _hideMenu(instant = false) {
-        // logic to hide the currently active menu
+    /**
+     * Adds a menu configuration to the manager.
+     * @param {ContextMenuConfigOptions} configOptions - The configuration object for the menu.
+     */
+    addMenuConfiguration(configOptions) {
+        if (!configOptions.id) {
+            this._log({
+                event: "addMenuConfiguration",
+                message: "Failed to add menu configuration: ID is required.",
+                isError: true,
+            });
+            throw new Error("ID is required for menu configuration.");
+        }
+
+        if (
+            this.menuConfigurations[configOptions.id] &&
+            !this.menuConfigurations[configOptions.id].isHtmlSource
+        ) {
+            this._log({
+                event: "addMenuConfiguration",
+                message: `Overwriting existing menu configuration with ID: ${configOptions.id}`,
+            });
+        }
+
+        const commands = Array.isArray(configOptions.commands)
+            ? configOptions.commands
+                  .map((cmd) =>
+                      cmd instanceof MenuCommand ? cmd : new MenuCommand(cmd)
+                  )
+                  .sort((a, b) => a.order - b.order)
+            : [];
+        this.menuConfigurations[configOptions.id] = {
+            ...configOptions,
+            commands,
+            triggerEvent:
+                configOptions.triggerEvent || this.options.defaultTrigger,
+            filterStrategy:
+                configOptions.filterStrategy ||
+                this.options.globalFilterStrategy,
+        };
 
         this._log({
-            event: "hideMenu",
-            message: `Hiding menu: ${
-                this.activeMenuElement ? this.activeMenuElement.id : "none"
-            }`,
+            event: "addMenuConfiguration",
+            message: `Menu configuration added for ID: ${configOptions.id}`,
             data: {
-                activeMenuId: this.activeMenuElement
-                    ? this.activeMenuElement.id
-                    : null,
+                commandsCount: commands.length,
+                filterStrategy:
+                    this.menuConfigurations[configOptions.id].filterStrategy,
             },
         });
 
-        this._closeSubmenus(0, instant);
-
-        document.removeEventListener("click", this._boundOutsideClick, true);
-        document.removeEventListener("keydown", this._boundHandleKeydown);
-
-        if (this.currentTargetElement) {
-            this.currentTargetElement.removeEventListener(
-                "mouseleave",
-                this._boundHandleHoverLeave
-            );
-            this.currentTargetElement.removeEventListener(
-                "mouseenter",
-                this._boundHandleHoverEnter
-            );
-        }
-        if (this.activeMenuElement) {
-            this.activeMenuElement.removeEventListener(
-                "mouseleave",
-                this._boundHandleHoverLeave
-            );
-            this.activeMenuElement.removeEventListener(
-                "mouseenter",
-                this._boundHandleHoverEnter
-            );
-        }
-        this._cancelHoverHide();
-
-        if (this.menuHideTimeout) clearTimeout(this.menuHideTimeout);
-
-        if (this.activeMenuElement) {
-            const menuToHide = this.activeMenuElement;
-            const hide = () => {
-                menuToHide.style.display = "none";
-                menuToHide.classList.remove(
-                    this.options.classes.open,
-                    this.options.classes.opening,
-                    this.options.classes.closing
-                );
-                menuToHide.innerHTML = "";
-                if (this.activeMenuElement === menuToHide)
-                    this.activeMenuElement = null;
-            };
-            if (instant || this.options.animations.menuCloseDuration === 0) {
-                hide();
-            } else {
-                menuToHide.classList.remove(
-                    this.options.classes.open,
-                    this.options.classes.opening
-                );
-                menuToHide.classList.add(this.options.classes.closing);
-                this.menuHideTimeout = setTimeout(() => {
-                    hide();
-                    this.menuHideTimeout = null;
-                }, this.options.animations.menuCloseDuration);
-            }
-        }
+        this._setupEventListeners();
     }
 
     /**
-     * Handles document clicks to close the menu if the click is outside.
-     * @param {Event} event - The click event.
-     * @private
+     * Binds a menu configuration to one or more HTML elements.
+     * @param {string|HTMLElement|HTMLElement[]} selectorOrElements - A CSS selector, a single HTML element, or an array of elements.
+     * @param {string} menuId - The ID of the menu configuration to bind.
+     * @param {string} type - The 'type' to assign to these elements.
      */
-    _handleOutsideClick(event) {
-        // If there's no active menu, or the menu is just opening, do nothing.
-        if (
-            !this.activeMenuElement ||
-            this.menuElement.classList.contains(this.options.classes.opening)
-        ) {
-            return;
-        }
+    bindMenuToElements(selectorOrElements, menuId, type) {
+        const elements =
+            typeof selectorOrElements === "string"
+                ? document.querySelectorAll(selectorOrElements)
+                : Array.isArray(selectorOrElements)
+                ? selectorOrElements
+                : [selectorOrElements];
 
-        // If the click is inside the active menu, do nothing.
-        if (this.activeMenuElement.contains(event.target)) {
-            return;
-        }
+        elements.forEach((el) => {
+            if (el instanceof HTMLElement) {
+                el.dataset.customCtxmenu = menuId;
+                el.dataset.customCtxmenuType = type;
+            }
+        });
 
-        this._hideMenu();
+        this._log({
+            event: "bindMenuToElements",
+            message: `Bound menu ${menuId} to elements of type ${type}`,
+            data: {
+                elementsCount: elements.length,
+                menuId,
+                type,
+            },
+        });
+    }
+
+    /**
+     * Unbinds a menu from one or more HTML elements.
+     * @param {string|HTMLElement|HTMLElement[]} selectorOrElements - A CSS selector, a single HTML element, or an array of elements.
+     */
+    unbindMenuFromElements(selectorOrElements) {
+        const elements =
+            typeof selectorOrElements === "string"
+                ? document.querySelectorAll(selectorOrElements)
+                : Array.isArray(selectorOrElements)
+                ? selectorOrElements
+                : [selectorOrElements];
+
+        elements.forEach((el) => {
+            if (el instanceof HTMLElement) {
+                delete el.dataset.customCtxmenu;
+                delete el.dataset.customCtxmenuType;
+            }
+        });
+
+        this._log({
+            event: "unbindMenuFromElements",
+            message: `Unbound menu from elements`,
+            data: {
+                elementsCount: elements.length,
+                selectorOrElements,
+            },
+        });
     }
 
     /**
@@ -1084,7 +1238,6 @@ class QuickCTX {
         const processStructure = (struct, defaultType) => {
             return struct
                 .map((item) => {
-
                     const commandConf =
                         item instanceof MenuCommand
                             ? { ...item } // Clone properties from the MenuCommand instance
@@ -1161,135 +1314,6 @@ class QuickCTX {
         if (selector && defaultTargetType) {
             this.bindMenuToElements(selector, menuId, defaultTargetType);
         }
-    }
-
-    /**
-     * Binds a menu configuration to one or more HTML elements.
-     * @param {string|HTMLElement|HTMLElement[]} selectorOrElements - A CSS selector, a single HTML element, or an array of elements.
-     * @param {string} menuId - The ID of the menu configuration to bind.
-     * @param {string} type - The 'type' to assign to these elements.
-     */
-    bindMenuToElements(selectorOrElements, menuId, type) {
-        const elements =
-            typeof selectorOrElements === "string"
-                ? document.querySelectorAll(selectorOrElements)
-                : Array.isArray(selectorOrElements)
-                ? selectorOrElements
-                : [selectorOrElements];
-
-        elements.forEach((el) => {
-            if (el instanceof HTMLElement) {
-                el.dataset.customCtxmenu = menuId;
-                el.dataset.customCtxmenuType = type;
-            }
-        });
-
-        this._log({
-            event: "bindMenuToElements",
-            message: `Bound menu ${menuId} to elements of type ${type}`,
-            data: {
-                elementsCount: elements.length,
-                menuId,
-                type,
-            },
-        });
-    }
-
-    /**
-     * Unbinds a menu from one or more HTML elements.
-     * @param {string|HTMLElement|HTMLElement[]} selectorOrElements - A CSS selector, a single HTML element, or an array of elements.
-     */
-    unbindMenuFromElements(selectorOrElements) {
-        const elements =
-            typeof selectorOrElements === "string"
-                ? document.querySelectorAll(selectorOrElements)
-                : Array.isArray(selectorOrElements)
-                ? selectorOrElements
-                : [selectorOrElements];
-
-        elements.forEach((el) => {
-            if (el instanceof HTMLElement) {
-                delete el.dataset.customCtxmenu;
-                delete el.dataset.customCtxmenuType;
-            }
-        });
-
-        this._log({
-            event: "unbindMenuFromElements",
-            message: `Unbound menu from elements`,
-            data: {
-                elementsCount: elements.length,
-                selectorOrElements,
-            },
-        });
-    }
-
-    /**
-     * Adds a menu configuration to the manager.
-     * @param {ContextMenuConfigOptions} configOptions - The configuration object for the menu.
-     */
-    addMenuConfiguration(configOptions) {
-        if (!configOptions.id) {
-            this._log({
-                event: "addMenuConfiguration",
-                message: "Failed to add menu configuration: ID is required.",
-                isError: true,
-            });
-            throw new Error("ID is required for menu configuration.");
-        }
-
-        if (
-            this.menuConfigurations[configOptions.id] &&
-            !this.menuConfigurations[configOptions.id].isHtmlSource
-        ) {
-            this._log({
-                event: "addMenuConfiguration",
-                message: `Overwriting existing menu configuration with ID: ${configOptions.id}`,
-            });
-        }
-
-        const commands = Array.isArray(configOptions.commands)
-            ? configOptions.commands
-                  .map((cmd) =>
-                      cmd instanceof MenuCommand ? cmd : new MenuCommand(cmd)
-                  )
-                  .sort((a, b) => a.order - b.order)
-            : [];
-        this.menuConfigurations[configOptions.id] = {
-            ...configOptions,
-            commands,
-            triggerEvent: configOptions.triggerEvent || this.options.trigger,
-            filterStrategy:
-                configOptions.filterStrategy ||
-                this.options.globalFilterStrategy,
-        };
-
-        this._log({
-            event: "addMenuConfiguration",
-            message: `Menu configuration added for ID: ${configOptions.id}`,
-            data: {
-                commandsCount: commands.length,
-                filterStrategy:
-                    this.menuConfigurations[configOptions.id].filterStrategy,
-            },
-        });
-
-        this._setupEventListeners();
-    }
-
-    /**
-     * Registers a named action that can be referenced by commands.
-     * @param {string} actionName - The unique name for the action.
-     * @param {Function} callback - The function to execute. It receives `(targetElement, command)`.
-     */
-    registerAction(actionName, callback) {
-        if (typeof callback !== "function" && callback !== null) {
-            console.error(
-                `Callback for action "${actionName}" must be a function or null.`
-            );
-            return;
-        }
-        this.registeredActions[actionName] = callback;
     }
 }
 
