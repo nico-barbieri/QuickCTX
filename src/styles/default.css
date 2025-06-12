@@ -139,19 +139,6 @@
     transform: translateY(0);
 }
 
-.quickctx-item .fa-solid,
-.quickctx-item .fa-regular,
-.quickctx-item .fa-brands,
-.quickctx-item .fas,
-.quickctx-item .far,
-.quickctx-item .fab
-{
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.9em;
-    width: 1.2em;
-    text-align: center;
-    color: inherit;
+.quickctx-icon {
+    margin-right: 1ch;
 }

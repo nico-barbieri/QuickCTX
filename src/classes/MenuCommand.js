@@ -35,9 +35,10 @@ class MenuCommand {
         visible = true,
         order = 0,
         content = null, 
-        isHtmlDefined = false
     }) {
-        if (type !== 'separator' && !label) {
+
+        if (this.type === 'separator' && !label) {
+            console.log(this);
             throw new Error(`MenuCommand (ID: ${id}): 'label' is required for types other than 'separator'.`);
         }
         
@@ -54,7 +55,6 @@ class MenuCommand {
         this.visible = visible;
         this.order = order;
         this.content = content; 
-        this.isHtmlDefined = isHtmlDefined;
     }
     
     /**

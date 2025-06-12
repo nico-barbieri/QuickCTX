@@ -9,7 +9,7 @@
 function createElement(tag, classes = [], attributes = {}, textContent = '') {
     const el = document.createElement(tag);
     if (classes) {
-        const classArray = Array.isArray(classes) ? classes : [...classes.split(' ')];
+        const classArray = Array.isArray(classes) ? classes.flatMap(cl => cl.split(' ')) : [...classes.split(' ')];
         classArray.forEach(cls => cls && el.classList.add(cls));
     }
     for (const attr in attributes) {

@@ -12,7 +12,7 @@ import MenuCommand from "./MenuCommand.js";
  * @property {string|string[]} [sublist='quickctx-sublist'] - CSS class for <li> items that open submenus.
  * @property {string|string[]} [disabled='quickctx-item--disabled'] - CSS class for disabled items.
  * @property {string|string[]} [hidden='quickctx-item--hidden'] - CSS class for hidden items.
- * @property {string|string[]} [iconPrefix='quickctx-icon-'] - Prefix for icon classes.
+ * @property {string|string[]} [icon='quickctx-icon'] - Icons class.
  * @property {string|string[]} [opening='quickctx--opening'] - Class added during the opening animation.
  * @property {string|string[]} [open='quickctx--open'] - Class added when the menu is fully open.
  * @property {string|string[]} [closing='quickctx--closing'] - Class added during the closing animation.
@@ -105,7 +105,7 @@ class QuickCTX {
                 sublist: "quickctx-sublist",
                 disabled: "quickctx-item--disabled",
                 hidden: "quickctx-item--hidden",
-                iconPrefix: "quickctx-icon-",
+                icon: "quickctx-icon",
                 opening: "quickctx--opening",
                 open: "quickctx--open",
                 closing: "quickctx--closing",
@@ -264,16 +264,6 @@ class QuickCTX {
         document.body.appendChild(this.menuElement);
 
         this._setupEventListeners();
-
-        // Parse and register any HTML-defined menus after the DOM is fully loaded.
-
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () =>
-                this._parseAndRegisterHtmlDefinedMenus()
-            );
-        } else {
-            this._parseAndRegisterHtmlDefinedMenus();
-        }
 
         this._log({ event: "init", message: "QuickCTX initialized" });
     }
@@ -484,10 +474,6 @@ class QuickCTX {
         }
     }
 
-    _parseAndRegisterHtmlDefinedMenus() {
-        // logic to parse HTML-defined menus and register them
-    }
-
     /**
      * Constructs the DOM for a menu based on its configuration.
      * @private
@@ -538,11 +524,9 @@ class QuickCTX {
         menuToBuild.innerHTML = "";
 
         if (!parentMenuElement) {
-            const headerTextTemplate =
-                config.headerTextTemplate;
+            const headerTextTemplate = config.headerTextTemplate;
             const headerText =
-                headerTextTemplate?.replace(/{type}/g, targetType) ||
-                "";
+                headerTextTemplate?.replace(/{type}/g, targetType) || "";
 
             if (headerText) {
                 menuToBuild.appendChild(
@@ -637,17 +621,21 @@ class QuickCTX {
             return li;
         }
         if (isDisabled) li.classList.add(this.options.classes.disabled);
-        if (command.iconClass)
+        if (command.iconClass) {
+            const iconSpan = createElement("span", this.options.classes.icon);
+
             command.iconClass
                 .split(" ")
                 .filter(Boolean)
                 .forEach((ic) =>
-                    li.classList.add(
-                        ic,
-                        this.options.classes.iconPrefix + ic.replace(".", "_")
-                    )
+                    iconSpan.classList.add(ic, ic.replace(".", "_"))
                 );
-        li.textContent = command.label;
+
+            li.appendChild(iconSpan);
+        }
+
+        li.innerHTML = li.innerHTML + command.label;
+
         command.element = li;
 
         li.addEventListener("mouseenter", () => {
@@ -808,28 +796,56 @@ class QuickCTX {
         }
     }
     _openSubmenu(command, parentLi, targetElement) {
-        if (command.submenuElement?.classList.contains(this.options.classes.open)) return;
+        if (
+            command.submenuElement?.classList.contains(
+                this.options.classes.open
+            )
+        )
+            return;
         let subMenuEl = command.submenuElement;
         if (!subMenuEl || !document.body.contains(subMenuEl)) {
-            subMenuEl = createElement('div', [this.options.classes.container, 'submenu']);
-            Object.assign(subMenuEl.style, { position: 'fixed', zIndex: '10001', display: 'none' });
+            subMenuEl = createElement("div", [
+                this.options.classes.container,
+                "submenu",
+            ]);
+            Object.assign(subMenuEl.style, {
+                position: "fixed",
+                zIndex: "10001",
+                display: "none",
+            });
             document.body.appendChild(subMenuEl);
             command.submenuElement = subMenuEl;
         }
         // Add listeners to the submenu itself to prevent it from closing when entered
-        subMenuEl.addEventListener("mouseenter", () => this._cancelSubmenuClose(command));
-        subMenuEl.addEventListener("mouseleave", () => this._scheduleSubmenuClose(command));
+        subMenuEl.addEventListener("mouseenter", () =>
+            this._cancelSubmenuClose(command)
+        );
+        subMenuEl.addEventListener("mouseleave", () =>
+            this._scheduleSubmenuClose(command)
+        );
 
         const rect = parentLi.getBoundingClientRect();
-        this._buildAndShowMenu({ commands: command.subCommands }, targetElement, targetElement.dataset.customCtxmenuType || 'default', rect.right, rect.top, subMenuEl, command);
+        this._buildAndShowMenu(
+            { commands: command.subCommands },
+            targetElement,
+            targetElement.dataset.customCtxmenuType || "default",
+            rect.right,
+            rect.top,
+            subMenuEl,
+            command
+        );
     }
     _scheduleSubmenuClose(command) {
         this._cancelSubmenuClose(command);
         command.closeTimeout = setTimeout(() => {
-            const submenuInfo = this.activeSubmenus.find(s => s.parentCommand === command);
+            const submenuInfo = this.activeSubmenus.find(
+                (s) => s.parentCommand === command
+            );
             if (submenuInfo) {
                 this._closeSingleSubmenu(submenuInfo);
-                this.activeSubmenus = this.activeSubmenus.filter(s => s.parentCommand !== command);
+                this.activeSubmenus = this.activeSubmenus.filter(
+                    (s) => s.parentCommand !== command
+                );
             }
         }, this.options.animations.submenuCloseDelay);
     }
@@ -855,13 +871,13 @@ class QuickCTX {
             }, this.options.animations.menuCloseDuration);
         }
     }
-    _closeSiblingSubmenus(command) { 
+    _closeSiblingSubmenus(command) {
         for (let i = this.activeSubmenus.length - 1; i >= 0; i--) {
             const submenuInfo = this.activeSubmenus[i];
             // Check if submenu's parent is the current command
             let isChild = false;
             let current = command;
-            while(current && current.parentCommand) {
+            while (current && current.parentCommand) {
                 if (current.parentCommand === submenuInfo.parentCommand) {
                     isChild = true;
                     break;
@@ -1068,18 +1084,30 @@ class QuickCTX {
         const processStructure = (struct, defaultType) => {
             return struct
                 .map((item) => {
-                    if (item instanceof MenuCommand) {
-                        if (
-                            item.targetTypes.length === 1 &&
-                            item.targetTypes[0] === "*"
-                        ) {
-                            item.targetTypes = [defaultType];
-                        }
-                        return item;
-                    }
 
-                    if (typeof item !== "object" || item === null) return null;
-                    const commandConf = { ...item };
+                    const commandConf =
+                        item instanceof MenuCommand
+                            ? { ...item } // Clone properties from the MenuCommand instance
+                            : typeof item === "object" && item !== null
+                            ? { ...item }
+                            : null;
+
+                    console.log(commandConf);
+
+                    if (typeof commandConf !== "object" || commandConf === null)
+                        return null;
+
+                    if (
+                        commandConf.subCommands &&
+                        Array.isArray(commandConf.subCommands) &&
+                        commandConf.subCommands.length > 0
+                    ) {
+                        commandConf.type = "sublist";
+                        commandConf.subCommands = processStructure(
+                            commandConf.subCommands,
+                            defaultType
+                        );
+                    }
 
                     if (typeof commandConf.action === "function") {
                         const actionFunc = commandConf.action;
@@ -1097,15 +1125,6 @@ class QuickCTX {
                         commandConf.targetTypes = [defaultType];
                     }
 
-                    if (
-                        commandConf.subCommands &&
-                        Array.isArray(commandConf.subCommands)
-                    ) {
-                        commandConf.subCommands = processStructure(
-                            commandConf.subCommands,
-                            defaultType
-                        );
-                    }
                     return new MenuCommand(commandConf);
                 })
                 .filter(Boolean);

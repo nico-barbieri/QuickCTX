@@ -84,9 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const deleteAction = (event) => {
             log(`Action 'Delete' executed on element with ID: ${event.target.dataset.id}`);
         };
+
+        const propertyAction = (event) => {
+            log(`Action 'Property' executed on element with ID: ${event.target.dataset.id}`);
+        };
         // Nuove azioni per i nuovi menu
-        const applyFilterAction = (event) => {
-             log(`Action 'Apply Filter' executed on element with ID: ${event.target.dataset.id}`);
+        const saveImageAction = (event) => {
+             log(`Action 'Save' executed on element with ID: ${event.target.dataset.id}`);
         };
         const shareEmailAction = (event) => {
              log(`Action 'Share via Email' executed on element with ID: ${event.target.dataset.id}`);
@@ -96,6 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // --- MENU 1
+
+        const commonCommands = [
+            MenuCommand.Separator("Common Actions"),
+            { label: "Properties", action: propertyAction, iconClass: 'fa solid fa-info-circle' }
+        ]
+
         ctxManager.createAndBindMenu({
             menuId: 'documentMenu',
             selector: '[data-type="document"]', 
@@ -104,8 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
             structure: [
                 { label: "Open", action: openAction },
                 { label: "Edit", action: editAction },
-                MenuCommand.Separator(), 
-                { label: "Delete", action: deleteAction }
+                { label: "Delete", action: deleteAction },
+                ...commonCommands
             ]
         });
 
@@ -117,18 +127,18 @@ document.addEventListener('DOMContentLoaded', () => {
             headerText: null /* 'Image Actions' */,
             triggerEvent: 'click',
             structure: [
-                { label: "Edit Image", action: editAction },
-                { label: "Apply Filter", action: applyFilterAction },
+                { label: "Edit Image", action: editAction, iconClass: 'fa solid fa-edit' },
+                { label: "Save Image", action: saveImageAction, iconClass: 'fa solid fa-download' },
                 MenuCommand.Separator("Sharing Options"), // separator with custom content
                 {
                     label: "Share",
-                    // to create a submenu, we use a subCommands array
                     type: 'sublist',
                     subCommands: [
                         { label: "Share via Email", action: shareEmailAction },
                         { label: "Copy Link", action: (e) => log('Link copied!') }
                     ]
-                }
+                },
+                ...commonCommands
             ]
         });
 
@@ -141,7 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
             triggerEvent: 'hover',
             structure: [
                 { label: "View Profile", action: viewProfileAction },
-                { label: "Send Message", action: (e) => log('Message sent!')}
+                { label: "Send Message", action: (e) => log('Message sent!')},
+                ...commonCommands
             ]
         });
 
