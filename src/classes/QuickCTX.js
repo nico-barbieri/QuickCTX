@@ -1092,8 +1092,6 @@ class QuickCTX {
                             ? { ...item }
                             : null;
 
-                    console.log(commandConf);
-
                     if (typeof commandConf !== "object" || commandConf === null)
                         return null;
 

@@ -38,7 +38,6 @@ class MenuCommand {
     }) {
 
         if (this.type === 'separator' && !label) {
-            console.log(this);
             throw new Error(`MenuCommand (ID: ${id}): 'label' is required for types other than 'separator'.`);
         }
         
