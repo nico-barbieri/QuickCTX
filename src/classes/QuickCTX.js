@@ -74,6 +74,13 @@ import MenuCommand from "./MenuCommand.js";
  */
 
 /**
+ * Represents the state of an active submenu.
+ * @typedef {object} SubmenuInfo
+ * @property {HTMLElement} element - The DOM element of the submenu container.
+ * @property {MenuCommand} parentCommand - The command that opened this submenu.
+ */
+
+/**
  * @typedef {object} Log
  * @property {string} event - The type of event being logged (e.g., 'init', 'action').
  * @property {string} message - A descriptive message about the event.
@@ -177,7 +184,7 @@ class QuickCTX {
 
         /**
          * An array of DOM elements for currently open submenus.
-         * @type {HTMLElement[]}
+         * @type {SubmenuInfo[]}
          * @private
          */
         this.activeSubmenus = [];
@@ -200,8 +207,8 @@ class QuickCTX {
 
         // Bind 'this' context for all event handlers consistently to maintain instance scope.
         this._boundHandleTrigger = this._handleTriggerEvent.bind(this);
-        this._boundOutsideClick = this._handleOutsideClick.bind(this);
         this._boundHandleKeydown = this._handleKeydown.bind(this);
+        this._boundOutsideClick = this._handleOutsideClick.bind(this);
 
         // for hover-triggered menus
         this._boundHandleHoverEnter = this._cancelHoverHide.bind(this);
@@ -274,22 +281,11 @@ class QuickCTX {
     /********** INIT **********/
 
     /**
-     * Initializes the library, creates the main menu element, sets up event listeners,
-     * and parses any HTML-defined menus.
+     * Initializes the library, setting up event listeners
      * @private
      */
     _init() {
         this._log({ event: "init", message: "Initializing QuickCTX" });
-
-        this.menuElement = createElement("div", this.options.classes.container);
-
-        Object.assign(this.menuElement.style, {
-            position: "fixed", // garantees the menu is positioned relative to the viewport
-            zIndex: "10000", // A high default z-index
-            display: "none", // Start hidden
-        });
-
-        document.body.appendChild(this.menuElement);
 
         this._setupEventListeners();
 
@@ -329,14 +325,6 @@ class QuickCTX {
             }
         });
 
-        // Always ensure a 'click' listener is present to handle closing the menu by clicking outside,
-        // unless 'click' is already the main trigger.
-        if (!activeTriggers.has("click")) {
-            document.addEventListener("click", this._boundOutsideClick);
-        } else {
-            document.removeEventListener("click", this._boundOutsideClick);
-        }
-
         this._log({
             event: "setupListeners",
             message: "Event listeners set up",
@@ -350,9 +338,6 @@ class QuickCTX {
      * @private
      */
     _handleTriggerEvent(event) {
-        if (this.menuElement.classList.contains(this.options.classes.closing))
-            return; // Prevent handling if the menu is currently closing. NOTE: add class assignation handling logic
-
         this._log({
             event: "handleTrigger",
             message: `Handling trigger event: ${event.type}`,
@@ -365,18 +350,22 @@ class QuickCTX {
                 ? event.target
                 : event.target.closest("[data-custom-ctxmenu]");
 
-        // if no target is found, return and optionally hide the menu
-        if (!targetElement) {
-            if (
-                event.type === "click" &&
-                this.activeMenuElement &&
-                !this.menuElement.contains(event.target)
-            )
-                this._hideMenu();
-            return;
+        // if no target is found, return
+        if (!targetElement) return;
+
+        const menuId = targetElement.getAttribute("data-custom-ctxmenu");
+        if (!menuId) {
+            this._log({
+                event: "handleTrigger",
+                message: `No menu ID found on target element: ${targetElement.tagName}`,
+                data: { targetElementId: targetElement.id || "unknown" },
+                isError: true,
+            });
+            throw new Error(
+                `No menu ID found on target element: ${targetElement.tagName}`
+            );
         }
 
-        const menuId = targetElement.getAttribute("data-custom-ctxmenu") || "";
         const config = this.menuConfigurations[menuId];
 
         if (!config) {
@@ -387,37 +376,25 @@ class QuickCTX {
                 isError: true,
             });
 
-            if (
-                event.type === "click" &&
-                this.activeMenuElement &&
-                !this.menuElement.contains(event.target)
-            )
-                this._hideMenu();
-            return;
+            throw new Error(`No menu configuration found for ID: ${menuId}`);
         }
 
         const eventTriggerType =
             event.type === "mouseover" ? "hover" : event.type;
+
         const expectedTrigger =
             config.triggerEvent || this.options.defaultTrigger;
 
-        if (eventTriggerType !== expectedTrigger) {
-            if (
-                event.type === "click" &&
-                this.activeMenuElement &&
-                !this.menuElement.contains(event.target)
-            )
-                this._hideMenu();
-            return;
-        }
+        if (eventTriggerType !== expectedTrigger) return;
 
-        if (expectedTrigger === "hover") {
-            this._cancelHoverHide();
-            if (
-                this.activeMenuElement &&
-                this.currentTargetElement === targetElement
+        // If another menu is already active, start its closing animation without waiting.
+        if (
+            this.activeMenuElement &&
+            !this.activeMenuElement.classList.contains(
+                this.options.classes.closing
             )
-                return;
+        ) {
+            this._hideMenu(this.activeMenuElement, false); // false = with animation
         }
 
         event.preventDefault();
@@ -427,6 +404,19 @@ class QuickCTX {
 
         const targetType =
             targetElement.getAttribute("data-custom-ctxmenu-type") || "default";
+
+        // Create a NEW menu element for this instance and set it as active.
+        const newMenuElement = createElement(
+            "div",
+            this.options.classes.container
+        );
+        Object.assign(newMenuElement.style, {
+            position: "fixed",
+            zIndex: "10000",
+            display: "none",
+        });
+        document.body.appendChild(newMenuElement);
+        this.activeMenuElement = newMenuElement;
 
         this._buildAndShowMenu(
             config,
@@ -440,36 +430,18 @@ class QuickCTX {
 
         this._log({
             event: "handleTrigger",
-            message: `Triggering menu ${menuId} for target type: ${targetType}`,
+            message: `Triggered menu ${menuId} for target type: ${targetType}`,
         });
 
+        // Setup hover-out listeners only for hover-triggered menus
         if (expectedTrigger === "hover") {
-            this._log({
-                event: "handleTrigger",
-                message: `Managing hover trigged menu for target type: ${targetType}`,
-            });
-
-            targetElement.addEventListener(
-                "mouseleave",
-                this._boundHandleHoverLeave
-            );
-            this.menuElement.addEventListener(
-                "mouseleave",
-                this._boundHandleHoverLeave
-            );
-            targetElement.addEventListener(
-                "mouseenter",
-                this._boundHandleHoverEnter
-            );
-            this.menuElement.addEventListener(
-                "mouseenter",
-                this._boundHandleHoverEnter
-            );
+            this._setupHoverListeners(targetElement, this.activeMenuElement);
         }
     }
 
     _handleKeydown(event) {
-        if (event.key === "Escape") this._hideMenu();
+        if (event.key === "Escape")
+            this._hideMenu(this.activeMenuElement, false);
     }
 
     /**
@@ -481,17 +453,35 @@ class QuickCTX {
         // If there's no active menu, or the menu is just opening, do nothing.
         if (
             !this.activeMenuElement ||
-            this.menuElement.classList.contains(this.options.classes.opening)
+            this.activeMenuElement.classList.contains(
+                this.options.classes.opening
+            )
         ) {
             return;
         }
 
-        // If the click is inside the active menu, do nothing.
+        // If the click is inside the active menu or a submenu, do nothing.
         if (this.activeMenuElement.contains(event.target)) {
             return;
         }
 
-        this._hideMenu();
+        for (const submenuInfo of this.activeSubmenus) {
+            if (
+                submenuInfo.element &&
+                submenuInfo.element.contains(event.target)
+            ) {
+                return;
+            }
+        }
+
+        this._hideMenu(this.activeMenuElement, false);
+    }
+
+    _setupHoverListeners(target, menu) {
+        target.addEventListener("mouseleave", this._boundHandleHoverLeave);
+        menu.addEventListener("mouseleave", this._boundHandleHoverLeave);
+        target.addEventListener("mouseenter", this._boundHandleHoverEnter);
+        menu.addEventListener("mouseenter", this._boundHandleHoverEnter);
     }
 
     /********** OPEN/CLOSE LOGIC **********/
@@ -499,7 +489,7 @@ class QuickCTX {
     _scheduleHoverHide() {
         this._cancelHoverHide();
         this.hoverHideTimeout = setTimeout(() => {
-            this._hideMenu();
+            this._hideMenu(this.activeMenuElement);
         }, this.options.animations.hoverMenuCloseDelay);
     }
 
@@ -624,36 +614,39 @@ class QuickCTX {
         }
     }
 
-        /**
+    /**
      * Recursively closes open submenus.
      * @private
      */
     _closeSubmenus(fromLevel = 0, instant = false) {
         while (this.activeSubmenus.length > fromLevel) {
-            const submenu = this.activeSubmenus.pop();
-            if (!submenu) continue;
+            const submenuInfo = this.activeSubmenus.pop();
+            if (!submenuInfo) continue;
+
+            const submenuEl = submenuInfo.element;
+
             const close = () => {
-                submenu.style.display = "none";
-                submenu.classList.remove(
+                submenuEl.style.display = "none";
+                submenuEl.classList.remove(
                     this.options.classes.open,
                     this.options.classes.opening,
                     this.options.classes.closing
                 );
-                submenu.innerHTML = "";
-                if (submenu.parentElement === document.body)
-                    document.body.removeChild(submenu);
+                submenuEl.innerHTML = "";
+                if (submenuEl.parentElement === document.body)
+                    document.body.removeChild(submenuEl);
             };
             if (instant) close();
             else {
-                submenu.classList.remove(this.options.classes.open);
-                submenu.classList.add(this.options.classes.closing);
+                submenuEl.classList.remove(this.options.classes.open);
+                submenuEl.classList.add(this.options.classes.closing);
                 setTimeout(close, this.options.animations.menuCloseDuration);
             }
         }
     }
 
-    _hideMenu(instant = false) {
-        // logic to hide the currently active menu
+    _hideMenu(menuToHide, instant = false) {
+        if (!menuToHide) return;
 
         this._log({
             event: "hideMenu",
@@ -669,60 +662,51 @@ class QuickCTX {
 
         this._closeSubmenus(0, instant);
 
-        document.removeEventListener("click", this._boundOutsideClick, true);
-        document.removeEventListener("keydown", this._boundHandleKeydown);
-
-        if (this.currentTargetElement) {
-            this.currentTargetElement.removeEventListener(
-                "mouseleave",
-                this._boundHandleHoverLeave
-            );
-            this.currentTargetElement.removeEventListener(
-                "mouseenter",
-                this._boundHandleHoverEnter
-            );
-        }
-        if (this.activeMenuElement) {
-            this.activeMenuElement.removeEventListener(
-                "mouseleave",
-                this._boundHandleHoverLeave
-            );
-            this.activeMenuElement.removeEventListener(
-                "mouseenter",
-                this._boundHandleHoverEnter
-            );
-        }
-        this._cancelHoverHide();
-
-        if (this.menuHideTimeout) clearTimeout(this.menuHideTimeout);
-
-        if (this.activeMenuElement) {
-            const menuToHide = this.activeMenuElement;
-            const hide = () => {
-                menuToHide.style.display = "none";
-                menuToHide.classList.remove(
-                    this.options.classes.open,
-                    this.options.classes.opening,
-                    this.options.classes.closing
-                );
-                menuToHide.innerHTML = "";
-                if (this.activeMenuElement === menuToHide)
-                    this.activeMenuElement = null;
-            };
-            if (instant || this.options.animations.menuCloseDuration === 0) {
-                hide();
-            } else {
-                menuToHide.classList.remove(
-                    this.options.classes.open,
-                    this.options.classes.opening
-                );
-                menuToHide.classList.add(this.options.classes.closing);
-                this.menuHideTimeout = setTimeout(() => {
-                    hide();
-                    this.menuHideTimeout = null;
-                }, this.options.animations.menuCloseDuration);
+        const hide = () => {
+            if (menuToHide.parentElement) {
+                menuToHide.parentElement.removeChild(menuToHide);
             }
+
+            // Reset state only if the menu being hidden is the active one.
+
+            if (this.activeMenuElement === menuToHide) {
+                this.activeMenuElement = null;
+                this.currentTargetElement = null;
+
+                // Clean up global listeners associated with an open menu.
+                document.removeEventListener(
+                    "click",
+                    this._boundOutsideClick,
+                    true
+                );
+
+                document.removeEventListener(
+                    "keydown",
+                    this._boundHandleKeydown
+                );
+            }
+        };
+
+        if (instant || this.options.animations.menuCloseDuration === 0) {
+            hide();
+        } else {
+            menuToHide.classList.remove(
+                this.options.classes.open,
+                this.options.classes.opening
+            );
+            menuToHide.classList.add(this.options.classes.closing);
+            setTimeout(hide, this.options.animations.menuCloseDuration);
         }
+
+        this._log({
+            event: "hideMenu",
+            message: "Menu hidden successfully",
+            data: {
+                activeMenuId: this.activeMenuElement
+                    ? this.activeMenuElement.id
+                    : null,
+            },
+        });
     }
 
     /********** DOM BUILD **********/
@@ -758,7 +742,9 @@ class QuickCTX {
             }
             return li;
         }
+
         if (isDisabled) li.classList.add(this.options.classes.disabled);
+
         if (command.iconClass) {
             const iconSpan = createElement("span", this.options.classes.icon);
 
@@ -798,73 +784,21 @@ class QuickCTX {
             li.appendChild(
                 createElement("span", "submenu-arrow", {}, " \u25B6")
             );
-            let hoverTimeout;
+        }
 
-            li.addEventListener("mouseenter", (e) => {
-                if (isDisabled) return;
-                const currentLevel = this.activeSubmenus.indexOf(
-                    command.submenuElement
-                );
-
-                this._closeSubmenus();
-
-                if (
-                    command.type === "sublist" &&
-                    command.subCommands?.length > 0
-                ) {
-                    hoverTimeout = setTimeout(() => {
-                        if (
-                            command.submenuElement?.classList.contains(
-                                this.options.classes.open
-                            )
-                        )
-                            return;
-
-                        let subMenuEl = command.submenuElement;
-                        if (!subMenuEl || !document.body.contains(subMenuEl)) {
-                            subMenuEl = createElement("div", [
-                                this.options.classes.container,
-                                "submenu",
-                            ]);
-                            Object.assign(subMenuEl.style, {
-                                position: "fixed",
-                                zIndex: "10000",
-                                display: "none",
-                            });
-                            document.body.appendChild(subMenuEl);
-                            command.submenuElement = subMenuEl;
-                        }
-                        const rect = li.getBoundingClientRect();
-                        this._buildAndShowMenu(
-                            {
-                                commands: command.subCommands,
-                                filterStrategy:
-                                    command.filterStrategy ||
-                                    this.options.globalFilterStrategy,
-                            },
-                            targetElement,
-                            targetElement.dataset.customCtxmenuType ||
-                                "default",
-                            rect.right,
-                            rect.top,
-                            subMenuEl,
-                            command
-                        );
-                    }, this.options.animations.submenuOpenDelay);
-                }
-            });
-
-            li.addEventListener("mouseleave", () => clearTimeout(hoverTimeout));
-        } else if (command.type === "action") {
+        if (command.type === "action") {
+            //if it's an action, add click listener
             li.addEventListener("click", (event) => {
                 event.stopPropagation();
                 if (isDisabled) return;
+
                 let action = command.action;
 
-                if (typeof action === "string")
+                if (typeof action === "string") {
                     action = this.registeredActions[action];
+                }
 
-                if (action === undefined) {
+                if (action === "undefined") {
                     this._log({
                         event: "actionError",
                         message: `No action registered for command "${command.label}"`,
@@ -882,7 +816,7 @@ class QuickCTX {
                 if (typeof action === "function") {
                     try {
                         action({ target: this.currentTargetElement, command });
-                    } catch (err) {
+                    } catch (error) {
                         this._log({
                             event: "actionError",
                             message: `Error executing action for command "${command.label}"`,
@@ -915,7 +849,7 @@ class QuickCTX {
                     })
                 );
 
-                this._hideMenu();
+                this._hideMenu(this.activeMenuElement);
             });
         }
         return li;
@@ -944,78 +878,85 @@ class QuickCTX {
         });
 
         // If a parent menu is provided, we are building a submenu.
-        const menuToBuild = parentMenuElement || this.menuElement;
-        if (!parentMenuElement) {
-            if (this.menuHideTimeout) {
-                clearTimeout(this.menuHideTimeout);
-                this.menuHideTimeout = null;
-            }
-            this.menuElement.classList.remove(
-                this.options.classes.closing,
-                this.options.classes.open,
-                this.options.classes.opening
-            );
-            const savedTarget = this.currentTargetElement;
-            this._hideMenu(); // Hide any currently active menu before building a new one
-            this.currentTargetElement = savedTarget; // Restore the current target element
-            this.activeMenuElement = menuToBuild;
-        } else {
-            this.activeSubmenus.push(menuToBuild);
-            menuToBuild.classList.remove(
-                this.options.classes.closing,
-                this.options.classes.open,
-                this.options.classes.opening
-            );
+        const menuToBuild = parentMenuElement || this.activeMenuElement;
+
+        if (parentMenuElement) {
+            this.activeSubmenus.push({
+                element: menuToBuild,
+                parentCommand: parentCommand,
+            });
         }
 
         menuToBuild.innerHTML = "";
 
-        if (!parentMenuElement) {
-            const headerTextTemplate = config.headerTextTemplate;
-            const headerText =
-                headerTextTemplate?.replace(/{type}/g, targetType) || "";
-
-            if (headerText) {
-                menuToBuild.appendChild(
-                    createElement(
-                        "div",
-                        this.options.classes.header,
-                        {},
-                        headerText
-                    )
-                );
-            }
+        const headerText = (
+            config.headerText ||
+            config.headerTextTemplate ||
+            ""
+        ).replace(/{type}/g, targetType);
+        if (!parentMenuElement && headerText) {
+            menuToBuild.appendChild(
+                createElement(
+                    "div",
+                    this.options.classes.header,
+                    {},
+                    headerText
+                )
+            );
         }
 
         const ul = createElement("ul", this.options.classes.list);
         let visibleItems = 0;
         config.commands.forEach((command) => {
+            if (parentCommand) command.parentCommand = parentCommand; // Hierarchical tracking
+
             const typeMatch =
                 command.targetTypes.includes("*") ||
                 command.targetTypes.includes(targetType);
-            if (!typeMatch && command.visible) return;
+
             if (!command.visible) return;
+
             let effectiveDisabled = command.disabled;
+
             if (!typeMatch) {
                 if (
                     (config.filterStrategy ||
                         this.options.globalFilterStrategy) === "hide"
-                )
+                ) {
                     return;
+                }
                 effectiveDisabled = true;
             }
+
             ul.appendChild(
                 this._createMenuItemDOM(
                     command,
                     targetElement,
-                    effectiveDisabled,
-                    parentMenuElement !== null
+                    effectiveDisabled
                 )
             );
             visibleItems++;
         });
+
+        if (visibleItems > 0) {
+            menuToBuild.appendChild(ul);
+            this._showMenuDOM(menuToBuild, x, y, parentCommand);
+            if (!parentMenuElement) {
+                // add closing listeners when the main menu is shown
+                document.addEventListener(
+                    "click",
+                    this._boundOutsideClick,
+                    true
+                );
+                document.addEventListener("keydown", this._boundHandleKeydown);
+            }
+        } else {
+            this._hideMenu(this.activeMenuElement, true); //hide instantly if empty
+        }
+
         if (visibleItems === 0) {
-            if (!parentMenuElement) this._hideMenu(true);
+            if (!parentMenuElement)
+                this._hideMenu(this.activeMenuElement, true);
             else parentCommand?.element.classList.remove("has-submenu-arrow");
             return null;
         }
