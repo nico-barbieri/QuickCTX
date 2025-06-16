@@ -57,18 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
             trigger: 'contextmenu', 
             globalFilterStrategy: 'disable', 
             classes: {
-                container: 'quickctx-container ctxstyle-override',
-                header: 'quickctx-header',
-                list: 'quickctx-list',
-                item: 'quickctx-item',
-                separator: 'quickctx-separator',
-                sublist: 'quickctx-sublist',
-                disabled: 'quickctx-item--disabled',
-                hidden: 'quickctx-item--hidden',
-                iconPrefix: 'quickctx-icon-',
-                opening: 'quickctx--opening',
-                open: 'quickctx--open',
-                closing: 'quickctx--closing'
+                container: 'quickctx-container ctxstyle-override'
             },
         });
 

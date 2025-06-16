@@ -12,6 +12,7 @@ import MenuCommand from "./MenuCommand.js";
  * @property {string|string[]} [item='quickctx-item'] - CSS class for menu <li> elements (commands).
  * @property {string|string[]} [separator='quickctx-separator'] - CSS class for separators.
  * @property {string|string[]} [sublist='quickctx-sublist'] - CSS class for <li> items that open submenus.
+ * @property {string|string[]} [sublistCommand='quickctx-sublist-command'] - CSS class for <li> items that open submenus.
  * @property {string|string[]} [disabled='quickctx-item--disabled'] - CSS class for disabled items.
  * @property {string|string[]} [hidden='quickctx-item--hidden'] - CSS class for hidden items.
  * @property {string|string[]} [icon='quickctx-icon'] - Icons class.
@@ -26,7 +27,7 @@ import MenuCommand from "./MenuCommand.js";
  * @property {number} [submenuOpenDelay=150] - Delay in ms for opening submenus on hover.
  * @property {number} [menuOpenDuration=200] - Duration in ms of the main menu opening animation.
  * @property {number} [menuCloseDuration=200] - Duration in ms of the main menu closing animation.
- * @property {number} [hoverMenuCloseDelay=600] - Delay in ms before closing a hover-triggered menu.
+ * @property {number} [hoverMenuCloseDelay=300] - Delay in ms before closing a hover-triggered menu.
  * @property {number} [submenuCloseDelay=200] - Delay in ms before closing submenus after mouse leave.
  */
 
@@ -110,6 +111,7 @@ class QuickCTX {
                 item: "quickctx-item",
                 separator: "quickctx-separator",
                 sublist: "quickctx-sublist",
+                sublistCommand: "quickctx-sublist-command",
                 disabled: "quickctx-item--disabled",
                 hidden: "quickctx-item--hidden",
                 icon: "quickctx-icon",
@@ -122,7 +124,7 @@ class QuickCTX {
                 submenuOpenDelay: 150,
                 menuOpenDuration: 200,
                 menuCloseDuration: 200,
-                hoverMenuCloseDelay: 600, // Option for hover-triggered menus
+                hoverMenuCloseDelay: 300, // Option for hover-triggered menus
                 submenuCloseDelay: 200, // Delay before closing submenus
             },
         };
@@ -304,13 +306,15 @@ class QuickCTX {
             "contextmenu",
             "click",
             "dblclick",
-            "mouseover",
+            "hover",
         ];
 
         // Clear all potential listeners to ensure a clean state before re-adding.
-        supportedTriggers.forEach((trigger) =>
-            document.removeEventListener(trigger, this._boundHandleTrigger)
-        );
+        supportedTriggers.forEach((trigger) => {
+            const eventName = trigger === "hover" ? "mouseover" : trigger;
+
+            document.removeEventListener(eventName, this._boundHandleTrigger);
+        });
 
         // Collect all unique triggers from the default options and all registered menu configurations.
         const activeTriggers = new Set([this.options.defaultTrigger]);
@@ -321,7 +325,9 @@ class QuickCTX {
         // Add listeners only for the active triggers.
         activeTriggers.forEach((trigger) => {
             if (supportedTriggers.includes(trigger)) {
-                document.addEventListener(trigger, this._boundHandleTrigger);
+                const eventName = trigger === "hover" ? "mouseover" : trigger;
+
+                document.addEventListener(eventName, this._boundHandleTrigger);
             }
         });
 
@@ -386,6 +392,9 @@ class QuickCTX {
             config.triggerEvent || this.options.defaultTrigger;
 
         if (eventTriggerType !== expectedTrigger) return;
+
+        // avoid annoying recreation of menu during hover, only for hover-triggered menus
+        if (expectedTrigger === "hover" && this.currentTargetElement === targetElement) return;
 
         // If another menu is already active, start its closing animation without waiting.
         if (
@@ -525,7 +534,7 @@ class QuickCTX {
         if (!subMenuEl || !document.body.contains(subMenuEl)) {
             subMenuEl = createElement("div", [
                 this.options.classes.container,
-                "submenu",
+                this.options.classes.sublist
             ]);
             Object.assign(subMenuEl.style, {
                 position: "fixed",
@@ -780,7 +789,7 @@ class QuickCTX {
         });
 
         if (command.type === "sublist" && command.subCommands?.length > 0) {
-            li.classList.add(this.options.classes.sublist, "has-submenu-arrow");
+            li.classList.add(this.options.classes.sublistCommand, "has-submenu-arrow");
             li.appendChild(
                 createElement("span", "submenu-arrow", {}, " \u25B6")
             );
