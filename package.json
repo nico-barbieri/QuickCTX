@@ -19,7 +19,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nico-barbieri/quickctx.git"
+    "url": "git+https://github.com/nico-barbieri/QuickCTX.git"
   },
   "keywords": [
     "context-menu",
@@ -40,9 +40,9 @@
   "author": "Nico Barbieri (https://github.com/nico-barbieri)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nico-barbieri/quickctx/issues"
+    "url": "https://github.com/nico-barbieri/QuickCTX/issues"
   },
-  "homepage": "https://github.com/nico-barbieri/quickctx#readme",
+  "homepage": "https://github.com/nico-barbieri/QuickCTX#readme",
   "devDependencies": {
     "@babel/core": "^7.24.0",
     "@babel/preset-env": "^7.24.0",
