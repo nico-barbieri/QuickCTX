@@ -26,36 +26,45 @@ class MenuCommand {
     constructor({
         id = crypto.randomUUID(),
         label,
-        type = 'action',
+        type = "action",
         action,
-        targetTypes = ['*'],
+        targetTypes = ["*"],
         subCommands = [],
         iconClass = null,
         disabled = false,
         visible = true,
         order = 0,
-        content = null, 
+        content = null,
     }) {
-
-        if (this.type === 'separator' && !label) {
-            throw new Error(`MenuCommand (ID: ${id}): 'label' is required for types other than 'separator'.`);
+        if (this.type === "separator" && !label) {
+            throw new Error(
+                `MenuCommand (ID: ${id}): 'label' is required for types other than 'separator'.`
+            );
         }
-        
+
         this.id = id;
         this.label = label;
         this.type = type;
         this.action = action;
-        this.targetTypes = Array.isArray(targetTypes) && targetTypes.length > 0 ? targetTypes : ['*'];
-        this.subCommands = subCommands.map(cmdConfig =>
-            cmdConfig instanceof MenuCommand ? cmdConfig : new MenuCommand(cmdConfig)
-        );
+        this.targetTypes =
+            Array.isArray(targetTypes) && targetTypes.length > 0
+                ? targetTypes
+                : ["*"];
+        this.subCommands = subCommands.map((cmdConfig) => {
+            const subCmd =
+                cmdConfig instanceof MenuCommand
+                    ? cmdConfig
+                    : new MenuCommand(cmdConfig);
+            subCmd.parentCommand = this; 
+            return subCmd;
+        });
         this.iconClass = iconClass;
         this.disabled = disabled;
         this.visible = visible;
         this.order = order;
-        this.content = content; 
+        this.content = content;
     }
-    
+
     /**
      * A static factory method to create a separator command.
      * @param {string|HTMLElement|null} [content=null] - Optional text or HTML element to display. If provided, the separator acts as a sub-header.
@@ -63,8 +72,8 @@ class MenuCommand {
      */
     static Separator(content = null) {
         return new MenuCommand({
-            type: 'separator',
-            content: content
+            type: "separator",
+            content: content,
         });
     }
 }

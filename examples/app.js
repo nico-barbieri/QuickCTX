@@ -77,13 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const propertyAction = (event) => {
             log(`Action 'Property' executed on element with ID: ${event.target.dataset.id}`);
         };
-        // Nuove azioni per i nuovi menu
+
         const saveImageAction = (event) => {
              log(`Action 'Save' executed on element with ID: ${event.target.dataset.id}`);
         };
         const shareEmailAction = (event) => {
              log(`Action 'Share via Email' executed on element with ID: ${event.target.dataset.id}`);
         };
+        const shareWhatsappAction = event => {
+            log(`Action 'Whatsapp' executed on element with ID: ${event.target.dataset.id}`);
+        }
+
         const viewProfileAction = (event) => {
              log(`Action 'View Profile' (from hover) on element with ID: ${event.target.dataset.id}`);
         };
@@ -124,7 +128,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'sublist',
                     subCommands: [
                         { label: "Share via Email", action: shareEmailAction },
-                        { label: "Copy Link", action: (e) => log('Link copied!') }
+                        { label: "Copy Link", action: (e) => log('Link copied!') },
+                        {
+                            label: "Other",
+                            type: "sublist",
+                            subCommands: [
+                                {label: "Whatsapp", action: shareWhatsappAction }
+                            ]
+                        }
                     ]
                 },
                 ...commonCommands

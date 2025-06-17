@@ -27,6 +27,7 @@ import MenuCommand from "./MenuCommand.js";
  * @property {number} [submenuOpenDelay=150] - Delay in ms for opening submenus on hover.
  * @property {number} [menuOpenDuration=200] - Duration in ms of the main menu opening animation.
  * @property {number} [menuCloseDuration=200] - Duration in ms of the main menu closing animation.
+ * @property {number} [hoverOpenDelay=300] - Delay in ms before opening a hover-triggered menu.
  * @property {number} [hoverMenuCloseDelay=300] - Delay in ms before closing a hover-triggered menu.
  * @property {number} [submenuCloseDelay=200] - Delay in ms before closing submenus after mouse leave.
  */
@@ -124,6 +125,7 @@ class QuickCTX {
                 submenuOpenDelay: 150,
                 menuOpenDuration: 200,
                 menuCloseDuration: 200,
+                hoverMenuOpenDelay: 450,
                 hoverMenuCloseDelay: 300, // Option for hover-triggered menus
                 submenuCloseDelay: 200, // Delay before closing submenus
             },
@@ -205,16 +207,30 @@ class QuickCTX {
          */
         this.hoverHideTimeout = null;
 
+        /**
+         * A timeout ID for the hover-triggered menu opening delay.
+         * @type {number|null}
+         * @private
+         */
+        this.hoverOpenTimeout = null;
+
+        this.submenuCloseTimeout = null;
+
         // EVENT HANDLERS TO OPEN AND CLOSE MENUS
 
         // Bind 'this' context for all event handlers consistently to maintain instance scope.
         this._boundHandleTrigger = this._handleTriggerEvent.bind(this);
         this._boundHandleKeydown = this._handleKeydown.bind(this);
         this._boundOutsideClick = this._handleOutsideClick.bind(this);
+        this._boundScheduleAllSubmenusClose =
+            this._scheduleAllSubmenusClose.bind(this);
+        this._boundCancelAllSubmenusClose =
+            this._cancelAllSubmenusClose.bind(this);
 
         // for hover-triggered menus
         this._boundHandleHoverEnter = this._cancelHoverHide.bind(this);
         this._boundHandleHoverLeave = this._scheduleHoverHide.bind(this);
+        this._boundCancelHoverOpen = this._cancelHoverOpen.bind(this);
 
         this._init(); // Initialize the context menu manager
     }
@@ -306,28 +322,32 @@ class QuickCTX {
             "contextmenu",
             "click",
             "dblclick",
-            "hover",
+            "mouseover",
+            "mouseout",
         ];
 
         // Clear all potential listeners to ensure a clean state before re-adding.
         supportedTriggers.forEach((trigger) => {
-            const eventName = trigger === "hover" ? "mouseover" : trigger;
-
-            document.removeEventListener(eventName, this._boundHandleTrigger);
+            document.removeEventListener(trigger, this._boundHandleTrigger);
         });
 
         // Collect all unique triggers from the default options and all registered menu configurations.
         const activeTriggers = new Set([this.options.defaultTrigger]);
         Object.values(this.menuConfigurations).forEach((config) => {
-            if (config.triggerEvent) activeTriggers.add(config.triggerEvent);
+            if (config.triggerEvent) {
+                const eventName =
+                    config.triggerEvent === "hover"
+                        ? ["mouseover", "mouseout"]
+                        : [config.triggerEvent];
+
+                eventName.forEach((e) => activeTriggers.add(e));
+            }
         });
 
         // Add listeners only for the active triggers.
         activeTriggers.forEach((trigger) => {
             if (supportedTriggers.includes(trigger)) {
-                const eventName = trigger === "hover" ? "mouseover" : trigger;
-
-                document.addEventListener(eventName, this._boundHandleTrigger);
+                document.addEventListener(trigger, this._boundHandleTrigger);
             }
         });
 
@@ -349,6 +369,12 @@ class QuickCTX {
             message: `Handling trigger event: ${event.type}`,
             data: { target: event.target },
         });
+
+        // if cursor leaves an element, avoid hover menus opening
+        if (event.type === "mouseout") {
+            this._cancelHoverOpen();
+            return;
+        }
 
         let targetElement =
             this.options.overlapStrategy === "deepest" &&
@@ -394,7 +420,20 @@ class QuickCTX {
         if (eventTriggerType !== expectedTrigger) return;
 
         // avoid annoying recreation of menu during hover, only for hover-triggered menus
-        if (expectedTrigger === "hover" && this.currentTargetElement === targetElement) return;
+        if (
+            expectedTrigger === "hover" &&
+            this.currentTargetElement === targetElement
+        )
+            return;
+
+        /* if (eventTriggerType === "hover") {
+            this._cancelHoverOpen();
+            this.hoverOpenTimeout = setTimeout(() => {
+                this._openMenu(config, targetElement, event);
+            }, this.options.animations.hoverOpenDelay);
+        } else {
+            this._openMenu(config, targetElement, event);
+        } */
 
         // If another menu is already active, start its closing animation without waiting.
         if (
@@ -438,8 +477,8 @@ class QuickCTX {
         // logic to build the menu based on the configuration
 
         this._log({
-            event: "handleTrigger",
-            message: `Triggered menu ${menuId} for target type: ${targetType}`,
+            event: "_handleTriggerEvent",
+            message: `Opened menu ${menuId} for target type: ${targetType}`,
         });
 
         // Setup hover-out listeners only for hover-triggered menus
@@ -495,6 +534,67 @@ class QuickCTX {
 
     /********** OPEN/CLOSE LOGIC **********/
 
+    /**
+     * Handles the logic of building and displaying a menu for a given trigger.
+     * This method centralizes the opening logic to be called either directly or with a delay.
+     * @param {object} config - The menu configuration.
+     * @param {HTMLElement} targetElement - The element that triggered the menu.
+     * @param {Event} event - The original trigger event.
+     * @private
+     */
+    _openMenu(config, targetElement, event) {
+        // If another menu is already active, start its closing animation without waiting.
+        if (
+            this.activeMenuElement &&
+            !this.activeMenuElement.classList.contains(
+                this.options.classes.closing
+            )
+        ) {
+            this._hideMenu(this.activeMenuElement, false); // false = with animation
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        this.currentTargetElement = targetElement;
+
+        const targetType =
+            targetElement.getAttribute("data-custom-ctxmenu-type") || "default";
+
+        // Create a NEW menu element for this instance and set it as active.
+        const newMenuElement = createElement(
+            "div",
+            this.options.classes.container
+        );
+        Object.assign(newMenuElement.style, {
+            position: "fixed",
+            zIndex: "10000",
+            display: "none",
+        });
+        document.body.appendChild(newMenuElement);
+        this.activeMenuElement = newMenuElement;
+
+        this._buildAndShowMenu(
+            config,
+            targetElement,
+            targetType,
+            event.clientX,
+            event.clientY
+        );
+
+        // logic to build the menu based on the configuration
+
+        this._log({
+            event: "_openMenu",
+            message: `Opened menu ${menuId} for target type: ${targetType}`,
+        });
+
+        // Setup hover-out listeners only for hover-triggered menus
+        if (expectedTrigger === "hover") {
+            this._setupHoverListeners(targetElement, this.activeMenuElement);
+        }
+    }
+
     _scheduleHoverHide() {
         this._cancelHoverHide();
         this.hoverHideTimeout = setTimeout(() => {
@@ -506,6 +606,13 @@ class QuickCTX {
         if (this.hoverHideTimeout) {
             clearTimeout(this.hoverHideTimeout);
             this.hoverHideTimeout = null;
+        }
+    }
+
+    _cancelHoverOpen() {
+        if (this.hoverOpenTimeout) {
+            clearTimeout(this.hoverOpenTimeout);
+            this.hoverOpenTimeout = null;
         }
     }
 
@@ -534,7 +641,7 @@ class QuickCTX {
         if (!subMenuEl || !document.body.contains(subMenuEl)) {
             subMenuEl = createElement("div", [
                 this.options.classes.container,
-                this.options.classes.sublist
+                this.options.classes.sublist,
             ]);
             Object.assign(subMenuEl.style, {
                 position: "fixed",
@@ -545,11 +652,13 @@ class QuickCTX {
             command.submenuElement = subMenuEl;
         }
         // Add listeners to the submenu itself to prevent it from closing when entered
-        subMenuEl.addEventListener("mouseenter", () =>
-            this._cancelSubmenuClose(command)
+        subMenuEl.addEventListener(
+            "mouseenter",
+            this._boundCancelAllSubmenusClose
         );
-        subMenuEl.addEventListener("mouseleave", () =>
-            this._scheduleSubmenuClose(command)
+        subMenuEl.addEventListener(
+            "mouseleave",
+            this._boundScheduleAllSubmenusClose
         );
 
         const rect = parentLi.getBoundingClientRect();
@@ -564,31 +673,44 @@ class QuickCTX {
         );
     }
 
-    _scheduleSubmenuClose(command) {
-        this._cancelSubmenuClose(command);
-        command.closeTimeout = setTimeout(() => {
-            const submenuInfo = this.activeSubmenus.find(
-                (s) => s.parentCommand === command
-            );
-            if (submenuInfo) {
-                this._closeSingleSubmenu(submenuInfo);
-                this.activeSubmenus = this.activeSubmenus.filter(
-                    (s) => s.parentCommand !== command
-                );
-            }
+    _scheduleAllSubmenusClose() {
+        this._cancelAllSubmenusClose(); // Previene timer duplicati
+        this.submenuCloseTimeout = setTimeout(() => {
+            this._closeSubmenus(); // Chiude TUTTI i sottomenu
         }, this.options.animations.submenuCloseDelay);
     }
 
-    _cancelSubmenuClose(command) {
-        if (command.closeTimeout) {
-            clearTimeout(command.closeTimeout);
-            command.closeTimeout = null;
+    _cancelAllSubmenusClose() {
+        clearTimeout(this.submenuCloseTimeout);
+    }
+
+    /**
+     * Closes all active submenus that are not in the direct ancestry
+     * of the currently hovered command.
+     * @param {MenuCommand} command - The command of the item being hovered.
+     * @private
+     */
+    _closeSiblingSubmenus(command) {
+        const ancestors = new Set();
+        let current = command;
+        while (current) {
+            ancestors.add(current);
+            current = current.parentCommand;
+        }
+
+        for (let i = this.activeSubmenus.length - 1; i >= 0; i--) {
+            const submenuInfo = this.activeSubmenus[i];
+            if (!ancestors.has(submenuInfo.parentCommand)) {
+                this._closeSingleSubmenu(submenuInfo);
+                this.activeSubmenus.splice(i, 1);
+            }
         }
     }
 
     _closeSingleSubmenu(submenuInfo, instant = false) {
         const submenu = submenuInfo.element;
         if (!submenu) return;
+
         // Clean up its listeners
         submenu.removeEventListener("mouseenter", this._cancelSubmenuClose);
         submenu.removeEventListener("mouseleave", this._scheduleSubmenuClose);
@@ -600,26 +722,6 @@ class QuickCTX {
             setTimeout(() => {
                 if (submenu.parentElement) document.body.removeChild(submenu);
             }, this.options.animations.menuCloseDuration);
-        }
-    }
-
-    _closeSiblingSubmenus(command) {
-        for (let i = this.activeSubmenus.length - 1; i >= 0; i--) {
-            const submenuInfo = this.activeSubmenus[i];
-            // Check if submenu's parent is the current command
-            let isChild = false;
-            let current = command;
-            while (current && current.parentCommand) {
-                if (current.parentCommand === submenuInfo.parentCommand) {
-                    isChild = true;
-                    break;
-                }
-                current = current.parentCommand;
-            }
-            if (submenuInfo.parentCommand !== command && !isChild) {
-                this._closeSingleSubmenu(submenuInfo);
-                this.activeSubmenus.splice(i, 1);
-            }
         }
     }
 
@@ -774,8 +876,9 @@ class QuickCTX {
         li.addEventListener("mouseenter", () => {
             if (isDisabled) return;
 
-            // Close any submenus that don't belong to this item's parent chain.
-            this._closeSiblingSubmenus(command);
+            this._boundCancelAllSubmenusClose();
+
+            this._closeSiblingSubmenus(command); 
 
             // If this item is a sublist, schedule its opening.
             if (command.type === "sublist" && command.subCommands?.length > 0) {
@@ -783,13 +886,13 @@ class QuickCTX {
             }
         });
 
-        li.addEventListener("mouseleave", () => {
-            this._cancelSubmenuOpen(command);
-            this._scheduleSubmenuClose(command);
-        });
+        li.addEventListener("mouseleave", this._boundScheduleAllSubmenusClose);
 
         if (command.type === "sublist" && command.subCommands?.length > 0) {
-            li.classList.add(this.options.classes.sublistCommand, "has-submenu-arrow");
+            li.classList.add(
+                this.options.classes.sublistCommand,
+                "has-submenu-arrow"
+            );
             li.appendChild(
                 createElement("span", "submenu-arrow", {}, " \u25B6")
             );
