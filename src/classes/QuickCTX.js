@@ -27,7 +27,7 @@ import MenuCommand from "./MenuCommand.js";
  * @property {number} [submenuOpenDelay=150] - Delay in ms for opening submenus on hover.
  * @property {number} [menuOpenDuration=200] - Duration in ms of the main menu opening animation.
  * @property {number} [menuCloseDuration=200] - Duration in ms of the main menu closing animation.
- * @property {number} [hoverOpenDelay=300] - Delay in ms before opening a hover-triggered menu.
+ * @property {number} [hoverMenuOpenDelay=300] - Delay in ms before opening a hover-triggered menu.
  * @property {number} [hoverMenuCloseDelay=300] - Delay in ms before closing a hover-triggered menu.
  * @property {number} [submenuCloseDelay=200] - Delay in ms before closing submenus after mouse leave.
  */
@@ -426,17 +426,19 @@ class QuickCTX {
         )
             return;
 
-        /* if (eventTriggerType === "hover") {
+        if (
+            eventTriggerType === "hover" &&
+            this.options.animations.hoverMenuOpenDelay > 0
+        ) {
             this._cancelHoverOpen();
             this.hoverOpenTimeout = setTimeout(() => {
-                this._openMenu(config, targetElement, event);
-            }, this.options.animations.hoverOpenDelay);
+                this._openMenu(config, targetElement, event, expectedTrigger, menuId);
+            }, this.options.animations.hoverMenuOpenDelay);
         } else {
-            this._openMenu(config, targetElement, event);
-        } */
+            this._openMenu(config, targetElement, event, expectedTrigger, menuId);
+        }
 
-        // If another menu is already active, start its closing animation without waiting.
-        if (
+        /* if (
             this.activeMenuElement &&
             !this.activeMenuElement.classList.contains(
                 this.options.classes.closing
@@ -484,7 +486,7 @@ class QuickCTX {
         // Setup hover-out listeners only for hover-triggered menus
         if (expectedTrigger === "hover") {
             this._setupHoverListeners(targetElement, this.activeMenuElement);
-        }
+        } */
     }
 
     _handleKeydown(event) {
@@ -542,7 +544,7 @@ class QuickCTX {
      * @param {Event} event - The original trigger event.
      * @private
      */
-    _openMenu(config, targetElement, event) {
+    _openMenu(config, targetElement, event, expectedTrigger, menuId) {
         // If another menu is already active, start its closing animation without waiting.
         if (
             this.activeMenuElement &&
@@ -561,17 +563,19 @@ class QuickCTX {
         const targetType =
             targetElement.getAttribute("data-custom-ctxmenu-type") || "default";
 
-        // Create a NEW menu element for this instance and set it as active.
         const newMenuElement = createElement(
             "div",
             this.options.classes.container
         );
+
         Object.assign(newMenuElement.style, {
             position: "fixed",
             zIndex: "10000",
             display: "none",
         });
+
         document.body.appendChild(newMenuElement);
+
         this.activeMenuElement = newMenuElement;
 
         this._buildAndShowMenu(
@@ -581,8 +585,6 @@ class QuickCTX {
             event.clientX,
             event.clientY
         );
-
-        // logic to build the menu based on the configuration
 
         this._log({
             event: "_openMenu",
@@ -878,7 +880,7 @@ class QuickCTX {
 
             this._boundCancelAllSubmenusClose();
 
-            this._closeSiblingSubmenus(command); 
+            this._closeSiblingSubmenus(command);
 
             // If this item is a sublist, schedule its opening.
             if (command.type === "sublist" && command.subCommands?.length > 0) {
