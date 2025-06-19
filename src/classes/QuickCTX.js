@@ -432,10 +432,22 @@ class QuickCTX {
         ) {
             this._cancelHoverOpen();
             this.hoverOpenTimeout = setTimeout(() => {
-                this._openMenu(config, targetElement, event, expectedTrigger, menuId);
+                this._openMenu(
+                    config,
+                    targetElement,
+                    event,
+                    expectedTrigger,
+                    menuId
+                );
             }, this.options.animations.hoverMenuOpenDelay);
         } else {
-            this._openMenu(config, targetElement, event, expectedTrigger, menuId);
+            this._openMenu(
+                config,
+                targetElement,
+                event,
+                expectedTrigger,
+                menuId
+            );
         }
 
         /* if (
@@ -1201,6 +1213,38 @@ class QuickCTX {
         });
 
         this._setupEventListeners();
+    }
+
+    /**
+     * Updates an existing menu configuration with new options.
+     * This is useful for dynamically changing a menu's properties, such as its trigger event.
+     * @param {string} menuId - The ID of the menu configuration to update.
+     * @param {object} newOptions - An object containing the properties to update (e.g., { triggerEvent: 'hover' }).
+     */
+    updateMenuConfiguration(menuId, newOptions) {
+        if (!this.menuConfigurations[menuId]) {
+            this._log({
+                event: "updateMenuConfiguration",
+                message: `Menu with ID "${menuId}" not found.`,
+                isError: true,
+            });
+            return;
+        }
+
+        // Merge the new options into the existing configuration
+        this.menuConfigurations[menuId] = {
+            ...this.menuConfigurations[menuId],
+            ...newOptions,
+        };
+
+        // Re-run the event listener setup to apply changes to triggers
+        this._setupEventListeners();
+
+        this._log({
+            event: "updateMenuConfiguration",
+            message: `Menu "${menuId}" updated successfully.`,
+            data: { newOptions },
+        });
     }
 
     /**

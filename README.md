@@ -372,6 +372,7 @@ You can pass a configuration object to the `new QuickCTX(options)` constructor t
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `createAndBindMenu(menuOptions)`             | The primary method to create, configure, and bind a menu in a single call.                            |
 | `addMenuConfiguration(config)`               | Adds a menu configuration to the manager without binding it to any elements.                          |
+| `updateMenuConfiguration(menuId, newOptions)` | Updates an existing menu configuration at runtime (e.g., to change its trigger).     |
 | `bindMenuToElements(selector, menuId, type)` | Binds an existing menu configuration to one or more elements.                                         |
 | `unbindMenuFromElements(selector)`           | Removes menu bindings from one or more elements.                                                      |
 | `registerAction(name, callback)`             | Registers a named action that can be referenced by string in the `structure` array.                   |
