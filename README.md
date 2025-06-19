@@ -17,6 +17,7 @@ QuickCTX allows you to build beautiful, fully functional, and deeply nested cont
 4. [Core Concepts](#-core-concepts)
 5. [Styling & Theming](#-styling--theming)
 6. [Advanced Configuration & API Reference](#️-advanced-configuration--api-reference)
+7. [Support the project <3](#️-support-the-project)
 7. [License](#-license)
 
 
