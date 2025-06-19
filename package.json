@@ -1,7 +1,7 @@
 {
   "name": "@nicobarbieri/quickctx",
-  "version": "1.0.1",
-  "description": "Fast & easy custom context menus for your web projects. Lightweight and flexible!",
+  "version": "1.0.2",
+  "description": "Fast & easy custom context menus for your web projects.",
   "main": "dist/quickctx.umd.js",
   "module": "dist/quickctx.esm.js",
   "browser": "dist/quickctx.umd.min.js",
