@@ -381,7 +381,7 @@ You can pass a configuration object to the `new QuickCTX(options)` constructor t
 
 ## ❤️ Support the Project
 
-If you find QuickCTX useful and want to support its development, you could offer me a drink on [ko-fi](https://ko-fi.com/V7V11GPBTJ)! Any support is greatly appreciated. ;) 
+If you find QuickCTX useful and want to support its development, you could offer me a [ko-fi](https://ko-fi.com/V7V11GPBTJ)! Any support is greatly appreciated. ;) 
 
 <br>
 
