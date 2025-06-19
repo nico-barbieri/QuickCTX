@@ -378,6 +378,18 @@ You can pass a configuration object to the `new QuickCTX(options)` constructor t
 | `setLoggerIsEnabled(boolean)`                | Enables or disables logging to the console or the custom logger.                                      |
 | `updateOptions(newOptions)`                  | Updates the manager's configuration at runtime.                                                       |
 
+## ❤️ Support the Project
+
+If you find QuickCTX useful and want to support its development, you could offer me a drink on [ko-fi](https://ko-fi.com/V7V11GPBTJ)! Any support is greatly appreciated. ;) 
+
+<br>
+
+<div align="center">
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/V7V11GPBTJ)
+
+</div>
+
 ## 📄 License
 
 QuickCTX is open-source software licensed under the [MIT License](LICENSE).
