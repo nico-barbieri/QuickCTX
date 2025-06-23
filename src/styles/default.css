@@ -30,7 +30,7 @@
 }
 
 .quickctx-container {
-    background-color: var(--quickctx-background);
+    background: var(--quickctx-background);
     border: var(--quickctx-border-size) solid var(--quickctx-border-color);
     box-shadow: var(--quickctx-shadow);
     min-width: var(--quickctx-min-width);
@@ -41,6 +41,7 @@
     padding: var(--quickctx-container-padding);
     transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
     opacity: 0;
+    overflow: hidden;
     transform: translateY(10px);
 }
 
@@ -90,7 +91,7 @@
 }
 
 .quickctx-container .quickctx-item:hover {
-    background-color: var(--quickctx-element-background-hover);
+    background: var(--quickctx-element-background-hover);
     color: var(--quickctx-text-color-hover);
 }
 

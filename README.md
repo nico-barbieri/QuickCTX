@@ -139,6 +139,7 @@ ctxManager.createAndBindMenu({
 | `headerText`          | `string`                         | Optional text for the menu's header. Can use `{type}` for dynamic replacement (e.g., "Actions for {type}"). |
 | `triggerEvent`        | `string`                         | Overrides the global `defaultTrigger` for this specific menu.                                            |
 | `filterStrategy`      | `string`                         | Overrides the global `globalFilterStrategy` for this specific menu.                                      |
+| `additionalClasses`      | `string`                         | Space-separated list of additional classes to add to the menu.                                      |
 
 #### Command Object Properties (`structure` array items)
 
@@ -213,7 +214,7 @@ For more decoupled code, listen for the `QuickCTXActionSelected` custom event, w
 
 ```javascript
 document.addEventListener('QuickCTXActionSelected', (e) => {
-  const { commandId, commandLabel, targetElement, targetType } = e.detail;
+  const { menuId, commandId, commandLabel, targetElement, targetType } = e.detail;
   console.log(`User selected '${commandLabel}' on an element of type '${targetType}'`);
 });
 ```
@@ -373,6 +374,7 @@ You can pass a configuration object to the `new QuickCTX(options)` constructor t
 | `createAndBindMenu(menuOptions)`             | The primary method to create, configure, and bind a menu in a single call.                            |
 | `addMenuConfiguration(config)`               | Adds a menu configuration to the manager without binding it to any elements.                          |
 | `updateMenuConfiguration(menuId, newOptions)` | Updates an existing menu configuration at runtime (e.g., to change its trigger).     |
+| `updateMenuCommand(menuId, action, updates)` | Updates one or more properties of a specific command at runtime, searching by its associated action (the string used to register it or the function itself) and menu id. |
 | `bindMenuToElements(selector, menuId, type)` | Binds an existing menu configuration to one or more elements.                                         |
 | `unbindMenuFromElements(selector)`           | Removes menu bindings from one or more elements.                                                      |
 | `registerAction(name, callback)`             | Registers a named action that can be referenced by string in the `structure` array.                   |

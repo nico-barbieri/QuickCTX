@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickCTX - Showcase</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- styles -->
+    <!-- <link rel="stylesheet" href="path/to/quickctx.css"> -->
+
+    <link rel="stylesheet" href="../src/styles/default.css">
+
+    <link rel="stylesheet" href="./showcase.css">
+
+    <audio preload="auto">
+        <source src="https://www.myinstants.com/media/sounds/shrek-roar.mp3">
+    </audio>
+    <audio preload="auto">
+        <source src="https://www.nyan.cat/music/original.mp3">
+    </audio>
+</head>
+
+<body>
+    <!-- visual effects -->
+    <div class="cursor-dot"></div>
+    <div class="cursor-outline"></div>
+    <div class="noise-overlay"></div>
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Header -->
+    <header class="page-header">
+        <div class="logo">QuickCTX</div>
+        <div class="controls">
+            <a href="https://github.com/nico-barbieri/QuickCTX" target="_blank"
+                class="header-link pointable hide-outline-on-hover">GitHub <i class="fab fa-github"></i></a>
+            <button id="theme-switcher" class="theme-switcher-btn pointable hide-outline-on-hover" title="Switch Theme">
+                <i class="fas fa-sun"></i>
+                <i class="fas fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- side navigation -->
+    <nav class="snap-nav hide-outline-on-hover" id="snap-navigation"></nav>
+
+    <!-- toast notifications container -->
+    <div id="toast-container"></div>
+
+    <!-- main container -->
+    <main id="scroll-container">
+
+        <!-- 1. Hero Section -->
+        <section id="hero" class="showcase-section" data-section="hero">
+            <div class="section-content">
+                <h1 class="section-title">Your Menus, Your Rules.</h1>
+                <p class="section-description">Tired of the boring default right-click menu?<strong> QuickCTX</strong> is your zero-dependency key to unlocking beautiful, <strong>fully-customizable context menus</strong> that behave exactly how you want.</p>
+                <p class="section-cta">A right-click on the box will reveal the magic.</p>
+                <pre>
+<code class="language-javascript">const heroMenu = new QuickCTX();
+ctxManager.createAndBindMenu({
+    menuId: "hero",
+    selector: "#hero-box",
+    structure: [
+        { label: "Say Hello", action: () => showToast("Hello! 👾"), icon: "fas fa-hand" },
+        { label: "✨ Magic Trick", action: launchConfetti },
+        MenuCommand.Separator(),
+        { label: "Get Started", action: () => goToSection("#submenus"), icon: "fas fa-rocket" },
+    ]
+});</code></pre>
+            </div>
+            <div class="example-wrapper">
+                <div id="hero-box" class="interactive-box">
+                    <h3>Right-Click Here</h3>
+                    <p>A simple menu will appear.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Submenus Section -->
+        <section id="submenus" class="showcase-section layout-reversed" data-section="submenus">
+            <div class="section-content">
+                <h2 class="section-title">Organize with Submenus.</h2>
+                <p class="section-description">When your actions multiply, your UI doesn't have to suffer. Create <strong>deeply nested submenus with a simple array structure</strong> to keep your command lists clean, logical, and user-friendly.</p>
+                <p class="section-cta">Explore the nested "Share" option in the demo.</p>
+                <pre><code class="language-javascript">structure:{
+    // ... other commands
+    {
+        label: 'Share',
+        icon: 'share-alt',
+        submenu: [
+            { label: 'Copy Link', action: (e) => copy(e) },
+            { label: 'Post to X', action: (e) => post_x(e) },
+            {
+                label: 'More Options...',
+                submenu: [
+                    { label: 'Send to Mars', action: (e) => send_mars(e) }
+                ]
+            }
+        ]
+    }
+}</code></pre>
+            </div>
+            <div class="example-wrapper">
+                <div id="submenu-box" class="interactive-box">
+                    <div>
+                        <h3>Image Gallery</h3>
+                        <p>For nested options.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Triggers & Animations Section -->
+        <section id="triggers" class="showcase-section" data-section="triggers">
+            <div class="section-content">
+                <h2 class="section-title">Not Just for Context.</h2>
+                <p class="section-description">Go beyond the right-click. With custom triggers, QuickCTX becomes a versatile UI tool. Bind menus to a <strong>click</strong>,
+                    a <strong>hover</strong>, or a <strong>double-click</strong>, to create dynamic toolbars, interactive info boxes, or user-activated dropdowns with the same simple API. All options are reactive and can be updated at runtime.
+                </p>
+                <p class="section-cta">Play with the controls below. Watch the code and the box's behavior change instantly.</p>
+                <div class="controls-group">
+                    <div id="trigger-controls">
+                        <span>Trigger:</span>
+                        <button class="control-btn pointable" data-trigger="contextmenu">Right-Click</button>
+                        <button class="control-btn active pointable" data-trigger="click">Left-Click</button>
+                        <button class="control-btn pointable" data-trigger="hover">Hover</button>
+                        <button class="control-btn pointable" data-trigger="dblclick">Double-Click</button>
+                    </div>
+                    <div id="delay-control" class="delay-slider-group">
+                        <label for="hover-delay-slider">Hover Open/Close Delay: <span
+                                id="hover-delay-value">300</span>ms</label>
+                        <div class="pointable hide-outline-on-hover">
+                            <input type="range" id="hover-delay-slider" min="0" max="1000" value="300" step="50">
+                        </div>
+                    </div>
+                </div>
+                <pre><code class="language-javascript">ctxManager.updateMenuConfiguration("trigger", {triggerEvent: selectedTrigger})
+
+ctxManager.updateOptions({animations: {hoverMenuOpenDelay: currentDelay, hoverMenuCloseDelay: currentDelay}})
+</code></pre>
+            </div>
+            <div class="example-wrapper">
+                <div id="trigger-box" class="interactive-box">
+                    <h3>Dynamic Trigger</h3>
+                    <p>Interact with me!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Contextual Logic Section -->
+        <section id="contextual" class="showcase-section layout-reversed" data-section="contextual">
+            <div class="section-content">
+                <h2 class="section-title">The Right Tool, at the Right Time.</h2>
+                <p class="section-description">A truly smart UI only shows what's relevant. Use <code>targetTypes</code> to create a single menu configuration that intelligently adapts, <strong>showing or disabling commands based on the context.</strong>
+                </p>
+                <p class="section-cta">The menu knows what you click. Try the folder, then the image.</p>
+                <pre><code class="language-javascript">ctxManager.createAndBindMenu({
+menuId: "contextual",
+selector: ".context-item",
+filterStrategy: "disable",
+structure: [
+    { label: "Open", action: "open_folder", icon: "fas fa-folder-open", targetTypes: ["folder"] },
+    { label: "Edit Image", action: "edit_image", icon: "fas fa-paint-brush", targetTypes: ["image"] }, ...
+});</code></pre>
+            </div>
+            <div class="example-wrapper">
+                <div id="contextual-box" class="interactive-box composite">
+                    <div class="context-item" data-custom-ctxmenu-type="folder"><i class="fas fa-folder"></i><span>Project</span></div>
+                    <div class="context-item" data-custom-ctxmenu-type="image"><i class="fas fa-image"></i><span>cat.jpg</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Nesting Section -->
+        <section id="nesting" class="showcase-section" data-section="nesting">
+            <div class="section-content">
+                <h2 class="section-title">Precision in Depth.</h2>
+                <p class="section-description"><strong>Overlapping clickable areas can be tricky.</strong> With <code>overlapStrategy</code>, you decide what happens. Target the most specific element with <code>'deepest'</code> (default), or the parent container with <code>'closest'</code>. You are in full control.</p>
+                <p class="section-cta">The inner box has its own menu. Right-click it to see the <code>'deepest'</code> strategy at work.</p>
+                <pre><code class="language-javascript">const ctxManager = new QuickCTX({
+  overlapStrategy: 'deepest'
+});
+
+ctxManager.createAndBindMenu({
+    menuId: 'menu1',
+    selector: '#nesting-box-outer',
+    structure: [{ label: 'Outer Action' }]
+});
+
+ctxManager.createAndBindMenu({
+    menuId: 'menu2',
+    selector: '#nesting-box-inner',
+    structure: [{ label: 'Inner Action' }]
+});</code></pre>
+            </div>
+            <div class="example-wrapper">
+                <div id="nesting-box-outer" class="interactive-box">
+                    <h3>Outer Box</h3>
+                    <div id="nesting-box-inner" class="interactive-box inner">
+                        <h3>Inner Box</h3>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Styling Section -->
+        <section id="styling" class="showcase-section layout-reversed" data-section="styling">
+            <div class="section-content">
+                <h2 class="section-title">Style it Your Way.</h2>
+                <p class="section-description">Make the menu a <strong>true part of your design</strong>. Override CSS variables for quick theming that matches your brand, or use custom classes for pixel-perfect control over each part of your menu.
+                </p>
+                <p class="section-cta">The menus you've seen all over this page is already adapted to the theme, actually. However, this box has a little different themed menu...</p>
+                <pre><code class="language-javascript">// CSS
+.quickctx-container {
+  --quickctx-shadow: 10px 10px 0px rgba(0, 0, 0, var(--c-bg));
+  /* ...and so on */
+}
+
+.quickctx-container.style-custom {
+    --quickctx-border-color: var(--c-card-border);
+    --quickctx-border-size: 2px;
+    --quickctx-border-radius: 4px;
+    --quickctx-font-family: var(--font-mono);
+    /* ... other declarations... */
+}
+
+// JS
+const ctxManager = new QuickCTX({
+    overlapStrategy: "deepest",
+    classes: {
+        container: "quickctx-container pointable hide-outline-on-hover",
+        item: "quickctx-item transition-all",
+    },
+});
+
+//...
+
+ctxManager.createAndBindMenu({
+    menuId: "styleCustom",
+    selector: "#style-box-custom",
+    additionalClasses: "style-custom",
+    //...
+});</code></pre>
+            </div>
+            <div class="example-wrapper horizontal-split">
+                <div id="style-box-custom" class="interactive-box">
+                    <h3>Custom Class</h3>
+                    <p>Unique flair</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. Event-Driven Section -->
+        <section id="events" class="showcase-section" data-section="events">
+            <div class="section-content">
+                <h2 class="section-title">Keep Your Logic Clean.</h2>
+                <p class="section-description">Prefer a centralized event bus over callbacks? QuickCTX emits a global <code>QuickCTXActionSelected</code> <strong>event</strong>. Listen for it anywhere in your app to centralize your action handling.</p>
+                <p class="section-cta">Click an action. The toast you see is triggered by a single, global event listener.</p>
+                <pre><code class="language-javascript">document.addEventListener('QuickCTXActionSelected', e => {
+  const { commandId, commandLabel, targetElement, targetType, menuId } = e.detail;
+
+  console.log(`Action "${commandLabel}" triggered!`);
+  
+  // Example: Show a notification
+  showToast(`Event caught! Action label: '${commandLabel}'`);
+
+  // Your application logic here...
+  if (action === 'doSomething') {
+    doSomething(targetElement);
+  }
+});</code></pre>
+            </div>
+            <div class="example-wrapper">
+                <div id="event-box" class="interactive-box">
+                    <h3>Catch My Events</h3>
+                    <p>Actions trigger global events.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. Advanced Section -->
+        <section id="advanced" class="showcase-section layout-reversed" data-section="advanced">
+            <div class="section-content">
+                <h2 class="section-title">Code Smarter, Not Harder.</h2>
+                <p class="section-description">Write less, achieve more. Define common action sets and reuse them across multiple menus with the spread operator. And when you need to peek under the hood, enable the <strong>built-in logger</strong>.</p>
+                <p class="section-cta">This menu is built by reusing a common set of actions, plus a few unique ones. </p>
+                <pre><code class="language-javascript">const commonActions = [
+  { label: 'Copy', icon: 'copy' },
+  { label: 'Paste', icon: 'paste', disabled: true },
+];
+
+ctxManager.createAndBindMenu({
+    menuId: "advanced",
+    selector: "#advanced-box",
+    structure: [
+        ...commonActions,
+        MenuCommand.Separator(),
+        { label: "Lil joke :)", action: (e) => jumpscarehehe(e), iconClass: "fas fa-ghost" },
+        { label: "Show Cat", action: "toggleNyanCat", iconClass: "fas fa-cat" }
+    ],
+});
+
+// See the console for debug logs
+QuickCTX.setLoggerIsEnabled(true);
+</code></pre>
+            </div>
+            <div class="example-wrapper">
+                <div id="advanced-box" class="interactive-box">
+                    <h3>Code Smarter</h3>
+                    <p>Reuse and debug.</p>
+                    <div class="cat-container" id="cat-container"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. Final Section -->
+        <section id="final" class="showcase-section animated-background" data-section="final">
+            <div class="final-content">
+                <h2 class="section-title">Ready to build?</h2>
+                <p>QuickCTX is open-source and ready for your next project.</p>
+                <a href="https://github.com/nico-barbieri/QuickCTX" class="github-button" target="_blank">
+                    <i class="fab fa-github"></i>
+                    Get it on GitHub
+                </a>
+                <div class="support-message">
+                    <p>I built QuickCTX in my free time, fueled by passion and coffee. If you find it useful, consider
+                        supporting the project. It helps me dedicate
+                        more time to projects like this one. Every little bit makes a
+                        huge difference. Thank you! 💙</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
+    <script>
+        kofiWidgetOverlay.draw('byblue', {
+            'type': 'floating-chat',
+            'floating-chat.donateButton.text': 'Support Me',
+            'floating-chat.donateButton.background-color': '#2daa28',
+            'floating-chat.donateButton.text-color': '#fff'
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <script src="./showcase.js" type="module"></script>
+
+    <svg width="0" height="0">
+        <filter id="lens-distortion">
+            <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="1" result="noise" seed="4">
+                <animate attributeName="baseFrequency" values="0.03 0.01; 0.01 0.03; 0.03 0.01;" dur="10s"
+                    repeatCount="indefinite" />
+            </feTurbulence>
+
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="30" xChannelSelector="R" yChannelSelector="G"
+                result="distorted" />
+
+            <feGaussianBlur in="distorted" stdDeviation="0.35" />
+        </filter>
+    </svg>
+
+</body>
+
+</html>

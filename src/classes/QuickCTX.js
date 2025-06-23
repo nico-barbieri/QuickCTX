@@ -58,12 +58,13 @@ import MenuCommand from "./MenuCommand.js";
  * Defines the configuration object for the `createAndBindMenu` helper method.
  * @typedef {object} MenuCreationOptions
  * @property {string} menuId - The unique ID for this menu. This ID is used to link the menu to HTML elements via the `data-custom-ctxmenu` attribute.
- * @property {string} [defaultTargetType] - A default 'type' or category to apply to all commands in this menu. This can be overridden by individual commands. It's used for filtering.
+ * @property {string} [defaultTargetType = "*"] - A default 'type' or category to apply to all commands in this menu. This can be overridden by individual commands. It's used for filtering.
  * @property {string|HTMLElement|HTMLElement[]} [selector] - An optional CSS selector, a single HTML element, or an array of elements to bind this menu to automatically.
  * @property {Array<MenuItemDefinition|MenuCommand>} structure - The array that defines the menu's structure and items.
  * @property {string} [headerText] - Optional text for the menu's header. If header is missing or empty, header will not be displayed.
  * @property {string} [triggerEvent] - Optional specific trigger event for this menu, overriding the global default.
  * @property {'hide' | 'disable'} [filterStrategy] - Overrides the global filter strategy for this menu.
+ * @property {string} [additionalClasses] - Space-separated list of additional classes to add to this menu.
  */
 
 /**
@@ -73,6 +74,7 @@ import MenuCommand from "./MenuCommand.js";
  * @property {Array<object|MenuCommand>} commands - An array of MenuCommand instances or configuration objects that define the menu's items.
  * @property {string} [triggerEvent] - Overrides the default trigger for this specific menu.
  * @property {'hide' | 'disable'} [filterStrategy] - Overrides the global filter strategy for this menu.
+ * @property {string} [additionalClasses] - Space-separated list of additional classes to add to a specific menu.
  */
 
 /**
@@ -221,6 +223,7 @@ class QuickCTX {
         // Bind 'this' context for all event handlers consistently to maintain instance scope.
         this._boundHandleTrigger = this._handleTriggerEvent.bind(this);
         this._boundHandleKeydown = this._handleKeydown.bind(this);
+        this._boundHandleScroll = this._handleScroll.bind(this);
         this._boundOutsideClick = this._handleOutsideClick.bind(this);
         this._boundScheduleAllSubmenusClose =
             this._scheduleAllSubmenusClose.bind(this);
@@ -449,61 +452,25 @@ class QuickCTX {
                 menuId
             );
         }
-
-        /* if (
-            this.activeMenuElement &&
-            !this.activeMenuElement.classList.contains(
-                this.options.classes.closing
-            )
-        ) {
-            this._hideMenu(this.activeMenuElement, false); // false = with animation
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        this.currentTargetElement = targetElement;
-
-        const targetType =
-            targetElement.getAttribute("data-custom-ctxmenu-type") || "default";
-
-        // Create a NEW menu element for this instance and set it as active.
-        const newMenuElement = createElement(
-            "div",
-            this.options.classes.container
-        );
-        Object.assign(newMenuElement.style, {
-            position: "fixed",
-            zIndex: "10000",
-            display: "none",
-        });
-        document.body.appendChild(newMenuElement);
-        this.activeMenuElement = newMenuElement;
-
-        this._buildAndShowMenu(
-            config,
-            targetElement,
-            targetType,
-            event.clientX,
-            event.clientY
-        );
-
-        // logic to build the menu based on the configuration
-
-        this._log({
-            event: "_handleTriggerEvent",
-            message: `Opened menu ${menuId} for target type: ${targetType}`,
-        });
-
-        // Setup hover-out listeners only for hover-triggered menus
-        if (expectedTrigger === "hover") {
-            this._setupHoverListeners(targetElement, this.activeMenuElement);
-        } */
     }
 
+    /**
+     * Handles the key "escape" event to close any active menu instantly.
+     * @private
+     */
     _handleKeydown(event) {
         if (event.key === "Escape")
             this._hideMenu(this.activeMenuElement, false);
+    }
+
+    /**
+     * Handles the scroll event to close any active menu instantly.
+     * @private
+     */
+    _handleScroll() {
+        if (this.activeMenuElement) {
+            this._hideMenu(this.activeMenuElement, false);
+        }
     }
 
     /**
@@ -667,7 +634,7 @@ class QuickCTX {
         }
         // Add listeners to the submenu itself to prevent it from closing when entered
         subMenuEl.addEventListener(
-            "mouseenter",
+            "mousemove",
             this._boundCancelAllSubmenusClose
         );
         subMenuEl.addEventListener(
@@ -726,8 +693,11 @@ class QuickCTX {
         if (!submenu) return;
 
         // Clean up its listeners
-        submenu.removeEventListener("mouseenter", this._cancelSubmenuClose);
-        submenu.removeEventListener("mouseleave", this._scheduleSubmenuClose);
+        submenu.removeEventListener("mousemove", this._cancelAllSubmenusClose);
+        submenu.removeEventListener(
+            "mouseleave",
+            this._scheduleAllSubmenusClose
+        );
         if (instant) {
             if (submenu.parentElement) document.body.removeChild(submenu);
         } else {
@@ -809,6 +779,12 @@ class QuickCTX {
                     "keydown",
                     this._boundHandleKeydown
                 );
+
+                window.removeEventListener(
+                    "scroll",
+                    this._boundHandleScroll,
+                    true
+                );
             }
         };
 
@@ -865,13 +841,23 @@ class QuickCTX {
                 else if (command.content instanceof HTMLElement)
                     li.appendChild(command.content);
             }
+
+            li.addEventListener("mouseenter", () => {
+                this._boundCancelAllSubmenusClose();
+
+                this._closeSiblingSubmenus(command);
+            });
+
             return li;
         }
 
         if (isDisabled) li.classList.add(this.options.classes.disabled);
 
+        console.log(command);
         if (command.iconClass) {
             const iconSpan = createElement("span", this.options.classes.icon);
+
+            console.log(iconSpan);
 
             command.iconClass
                 .split(" ")
@@ -888,9 +874,9 @@ class QuickCTX {
         command.element = li;
 
         li.addEventListener("mouseenter", () => {
-            if (isDisabled) return;
-
             this._boundCancelAllSubmenusClose();
+
+            if (isDisabled) return;
 
             this._closeSiblingSubmenus(command);
 
@@ -949,13 +935,13 @@ class QuickCTX {
                             data: {
                                 commandId: command.id,
                                 commandLabel: command.label,
-                                error: err.message,
+                                error: error.message,
                             },
                             isError: true,
                         });
 
                         throw new Error(
-                            `Error executing action for command "${command.label}": ${err.message}`
+                            `Error executing action for command "${command.label}": ${error.message}`
                         );
                     }
                 }
@@ -963,6 +949,8 @@ class QuickCTX {
                 this.currentTargetElement?.dispatchEvent(
                     new CustomEvent("QuickCTXActionSelected", {
                         detail: {
+                            menuId: this.currentTargetElement?.dataset
+                                .customCtxmenu,
                             commandId: command.id,
                             commandLabel: command.label,
                             targetElement: this.currentTargetElement,
@@ -1006,11 +994,15 @@ class QuickCTX {
         // If a parent menu is provided, we are building a submenu.
         const menuToBuild = parentMenuElement || this.activeMenuElement;
 
+        let additionalClasses = config.additionalClasses;
+
         if (parentMenuElement) {
             this.activeSubmenus.push({
                 element: menuToBuild,
                 parentCommand: parentCommand,
             });
+
+            additionalClasses = this.activeMenuElement.className;
         }
 
         menuToBuild.innerHTML = "";
@@ -1066,7 +1058,7 @@ class QuickCTX {
 
         if (visibleItems > 0) {
             menuToBuild.appendChild(ul);
-            this._showMenuDOM(menuToBuild, x, y, parentCommand);
+            this._showMenuDOM(menuToBuild, x, y, parentCommand, additionalClasses);
             if (!parentMenuElement) {
                 // add closing listeners when the main menu is shown
                 document.addEventListener(
@@ -1075,6 +1067,11 @@ class QuickCTX {
                     true
                 );
                 document.addEventListener("keydown", this._boundHandleKeydown);
+                window.addEventListener(
+                    "scroll",
+                    this._boundHandleScroll,
+                    true
+                );
             }
         } else {
             this._hideMenu(this.activeMenuElement, true); //hide instantly if empty
@@ -1094,7 +1091,8 @@ class QuickCTX {
             y,
             targetElement,
             parentMenuElement !== null,
-            parentCommand
+            parentCommand,
+            additionalClasses
         );
         if (!parentMenuElement) {
             document.addEventListener("click", this._boundOutsideClick, true);
@@ -1113,11 +1111,14 @@ class QuickCTX {
         y,
         targetElement,
         isSubmenu,
-        parentCommand
+        parentCommand, 
+        additionalClasses
     ) {
         menuDomElement.style.display = "block";
         menuDomElement.classList.remove(this.options.classes.closing);
         menuDomElement.classList.add(this.options.classes.opening);
+        additionalClasses?.split(" ").forEach(additionalClass => menuDomElement.classList.add(additionalClass));
+
         const menuRect = menuDomElement.getBoundingClientRect();
         const docWidth = window.innerWidth;
         const docHeight = window.innerHeight;
@@ -1175,10 +1176,7 @@ class QuickCTX {
             throw new Error("ID is required for menu configuration.");
         }
 
-        if (
-            this.menuConfigurations[configOptions.id] &&
-            !this.menuConfigurations[configOptions.id].isHtmlSource
-        ) {
+        if (this.menuConfigurations[configOptions.id]) {
             this._log({
                 event: "addMenuConfiguration",
                 message: `Overwriting existing menu configuration with ID: ${configOptions.id}`,
@@ -1248,6 +1246,74 @@ class QuickCTX {
     }
 
     /**
+     * Finds and updates a specific command within any menu or nested submenu
+     * by its unique ID. It performs a partial update, merging the new properties
+     * into the existing command's configuration.
+     *
+     * @param {string} menuId - The ID of the menu configuration containing the command.
+     * @param {string|function} action - The action associated to the command
+     * @param {Partial<MenuCommand>} updates - An object containing the properties to update
+     * on the command (e.g., { label: 'New Text', disabled: false, iconClass: 'fa fa-star' }).
+     * @returns {boolean} Returns `true` if the command was found and updated, otherwise `false`.
+     */
+    updateMenuCommand(menuId, action, updates) {
+        const menuConfig = this.menuConfigurations[menuId];
+
+        action = typeof action === "function" ? this.functionActionMap.get(action) : action;
+
+        if (!menuConfig) {
+            this._log({
+                event: "updateMenuCommand",
+                message: `Menu with ID "${menuId}" not found.`,
+                isError: true,
+            });
+            
+            return false;
+        }
+
+        let commandLabel;
+
+        // Helper function to recursively search for the command.
+        const findAndMerge = (commands) => {
+            for (const command of commands) {
+                // Target command found.
+                if (command.action === action) {
+                    Object.assign(command, updates);
+                    commandLabel = command.label;
+                    return true;
+                }
+                // If the command is a submenu, search within it.
+                if (command.subCommands && command.subCommands.length > 0) {
+                    if (findAndMerge(command.subCommands)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        };
+
+        const wasCommandUpdated = findAndMerge(menuConfig.commands);
+
+        if (wasCommandUpdated) {
+            this._log({
+                event: "updateMenuCommand",
+                message: `Command "${commandLabel}" in menu "${menuId}" was successfully updated.`,
+                data: { updates },
+            });
+        } else {
+            this._log({
+                event: "updateMenuCommand",
+                message: `Command not found in menu "${menuId}".`,
+                isError: true,
+            });
+
+            console.log(menuConfig);
+        }
+
+        return wasCommandUpdated;
+    }
+
+    /**
      * Binds a menu configuration to one or more HTML elements.
      * @param {string|HTMLElement|HTMLElement[]} selectorOrElements - A CSS selector, a single HTML element, or an array of elements.
      * @param {string} menuId - The ID of the menu configuration to bind.
@@ -1264,7 +1330,9 @@ class QuickCTX {
         elements.forEach((el) => {
             if (el instanceof HTMLElement) {
                 el.dataset.customCtxmenu = menuId;
-                el.dataset.customCtxmenuType = type;
+                el.dataset.customCtxmenuType = el.dataset.customCtxmenuType
+                    ? el.dataset.customCtxmenuType
+                    : type;
             }
         });
 
@@ -1314,12 +1382,13 @@ class QuickCTX {
      */
     createAndBindMenu({
         menuId,
-        defaultTargetType,
+        defaultTargetType = "*",
         selector,
         structure,
         headerText,
         triggerEvent,
         filterStrategy,
+        additionalClasses
     }) {
         if (!menuId || !structure) {
             this._log({
@@ -1406,6 +1475,7 @@ class QuickCTX {
             commands,
             triggerEvent,
             filterStrategy,
+            additionalClasses
         };
 
         this.addMenuConfiguration(menuConfig);
