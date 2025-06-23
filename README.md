@@ -4,6 +4,7 @@
 
 QuickCTX allows you to build beautiful, fully functional, and deeply nested context menus with just a few lines of code. It's lightweight, has zero dependencies, and is designed for an excellent developer experience, giving you full control over behavior and appearance.
 
+#### **[➡️ Try the Live Showcase Here!](https://nico-barbieri.github.io/QuickCTX/)**
 ---
 
 [![NPM Version](https://img.shields.io/npm/v/@nicobarbieri/quickctx?style=flat-square&color=cc3534)](https://www.npmjs.com/package/@nicobarbieri/quickctx)
