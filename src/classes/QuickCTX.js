@@ -853,11 +853,8 @@ class QuickCTX {
 
         if (isDisabled) li.classList.add(this.options.classes.disabled);
 
-        console.log(command);
         if (command.iconClass) {
             const iconSpan = createElement("span", this.options.classes.icon);
-
-            console.log(iconSpan);
 
             command.iconClass
                 .split(" ")
@@ -1307,7 +1304,6 @@ class QuickCTX {
                 isError: true,
             });
 
-            console.log(menuConfig);
         }
 
         return wasCommandUpdated;
