@@ -2,9 +2,11 @@
 
 **A simple, powerful, and fast library for creating custom context menus on any HTML element.**
 
-QuickCTX allows you to build beautiful, fully functional, and deeply nested context menus with just a few lines of code. It's lightweight, has zero dependencies, and is designed for an excellent developer experience, giving you full control over behavior and appearance.
+QuickCTX allows you to build **beautiful, fully functional, and deeply nested context menus with just a few lines of code**. It's lightweight, has zero dependencies, and is designed for an excellent developer experience, giving you full control over behavior and appearance.
 
 #### **[➡️ Try the Live Showcase Here!](https://nico-barbieri.github.io/QuickCTX/)**
+
+[![QuickCTX Showcase Screenshot](/docs/res/demo.gif)](https://nico-barbieri.github.io/QuickCTX/)
 ---
 
 [![NPM Version](https://img.shields.io/npm/v/@nicobarbieri/quickctx?style=flat-square&color=cc3534)](https://www.npmjs.com/package/@nicobarbieri/quickctx)
