@@ -68,6 +68,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const dot = document.querySelector(".cursor-dot");
         const outline = document.querySelector(".cursor-outline");
 
+        const outlineRadius = outline.getBoundingClientRect().width / 2;
+
         let mouseX = 0,
             mouseY = 0;
         let outlineX = 0,
@@ -92,14 +94,31 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 200);
         });
 
-        const animateOutline = () => {
-            outlineX += (mouseX - outlineX) * 0.1;
-            outlineY += (mouseY - outlineY) * 0.1;
-            outline.style.left = `${outlineX}px`;
-            outline.style.top = `${outlineY}px`;
+        let lastTime = 0;
+        const smoothingFactor = 8;
+
+        const animateOutline = (currentTime) => {
+
+            if (lastTime === 0) {
+                lastTime = currentTime;
+            }
+            
+            
+            const deltaTime = currentTime - lastTime;
+            const smoothing = 1 - Math.pow(1 - 1/smoothingFactor, deltaTime / 16.67);
+            
+            
+            outlineX += (mouseX - (outlineX + outlineRadius)) * smoothing;
+            outlineY += (mouseY - (outlineY + outlineRadius)) * smoothing;
+            
+            outline.style.transform = `translate(${outlineX}px, ${outlineY}px)`;
+
+            lastTime = currentTime;
+
             requestAnimationFrame(animateOutline);
         };
-        animateOutline();
+        
+        requestAnimationFrame(animateOutline);
     }
 
     // create side navigation and sync with scroll
@@ -264,7 +283,7 @@ function initAllMenus() {
             ctxManager.updateMenuCommand("contextual", "unlock", {
                 disabled: true,
                 label: "Unlocked!",
-                iconClass: "fas fa-unlock"
+                iconClass: "fas fa-unlock",
             });
         }
     });
@@ -313,14 +332,24 @@ function initAllMenus() {
         menuId: "nestingOuter",
         selector: "#nesting-box-outer",
         defaultTargetType: "outer-box",
-        structure: [{ label: "Action for OUTER box", action: () => showToast('Clicked on outer action!')}],
+        structure: [
+            {
+                label: "Action for OUTER box",
+                action: () => showToast("Clicked on outer action!"),
+            },
+        ],
     });
 
     ctxManager.createAndBindMenu({
         menuId: "nestingInner",
         selector: "#nesting-box-inner",
         defaultTargetType: "inner-box",
-        structure: [{ label: "Action for INNER box", action: () => showToast('Clicked on inner action!')}],
+        structure: [
+            {
+                label: "Action for INNER box",
+                action: () => showToast("Clicked on inner action!"),
+            },
+        ],
     });
 
     ctxManager.createAndBindMenu({
@@ -359,8 +388,20 @@ function initAllMenus() {
     });
 
     const commonActions = [
-        { label: "Copy", action: () => {showToast("Copied!")}, iconClass: "fas fa-copy" },
-        { label: "Cut", action: () => {showToast("Cut!")}, iconClass: "fas fa-cut" },
+        {
+            label: "Copy",
+            action: () => {
+                showToast("Copied!");
+            },
+            iconClass: "fas fa-copy",
+        },
+        {
+            label: "Cut",
+            action: () => {
+                showToast("Cut!");
+            },
+            iconClass: "fas fa-cut",
+        },
         {
             label: "Paste",
             action: "paste",

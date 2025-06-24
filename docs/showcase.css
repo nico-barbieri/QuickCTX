@@ -211,6 +211,8 @@ body:has(.pointable:hover) .cursor-dot {
 
 .cursor-outline {
     position: fixed;
+    top: 0;
+    left: 0;
     width: 30px;
     height: 30px;
     border-radius: 50%;
@@ -220,14 +222,15 @@ body:has(.pointable:hover) .cursor-dot {
     border: none;
     backdrop-filter: url(#lens-distortion);
     mix-blend-mode: exclusion;
-    transform: translate(-50%, -50%);
-    transition: top 0.1s ease-out, left 0.1s ease-out, width .4s cubic-bezier(0, .5, .2, 1), height .4s cubic-bezier(0, .5, .2, 1), opacity .4s cubic-bezier(0, .5, .2, 1), transform .4s cubic-bezier(0, .5, .2, 1);
+    transition: top .4s cubic-bezier(0, .5, .2, 1), left .4s cubic-bezier(0, .5, .2, 1), width .4s cubic-bezier(0, .5, .2, 1), height .4s cubic-bezier(0, .5, .2, 1), opacity .4s cubic-bezier(0, .5, .2, 1), transform .4s cubic-bezier(0, .5, .2, 1);
 }
 
 .cursor-outline.pressing {
+    top: 9px;
+    left: 9px;
     width: 12px;
     height: 12px;
-    transition: width .2s cubic-bezier(0, .5, .2, 1), height .2s cubic-bezier(0, .5, .2, 1);
+    transition: top .2s cubic-bezier(0, .5, .2, 1), left .2s cubic-bezier(0, .5, .2, 1), width .2s cubic-bezier(0, .5, .2, 1), height .2s cubic-bezier(0, .5, .2, 1);
 }
 
 body:has(.hide-outline-on-hover:hover) .cursor-outline {
