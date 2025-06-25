@@ -1,4 +1,4 @@
-# QuickCTX ✨
+# ![QuickCTX Logo](./docs/res/QuickCTXLogoSimpleColor.svg "QuickCTX Logo")uickCTX ✨
 
 **A simple, powerful, and fast library for creating custom context menus on any HTML element.**
 

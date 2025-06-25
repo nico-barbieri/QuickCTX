@@ -1,10 +1,11 @@
 /* --- GLOBAL SETTINGS AND PALETTE --- */
-@import url('https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Poppins:wght@400;500&family=Inter:wght@400');
+@import url('https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Poppins:wght@400;500&family=Inter:wght@400&family=Lexend:wght@100..900');
 
 :root {
     --font-heading: 'Abril Fatface', serif;
     --font-body: 'Poppins', sans-serif;
     --font-mono: monospace;
+    --font-logo: Lexend;
 
     --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
     --ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
@@ -21,6 +22,10 @@
     --c-card-border: rgba(0, 0, 0, 0.08);
     --c-card-shadow: rgba(0, 0, 0, 0.05);
     --c-code-bg: rgba(0, 0, 0, 0.05);
+}
+
+html {
+    color: var(--c-heading);
 }
 
 html.dark-mode {
@@ -300,11 +305,23 @@ body:has(.pointable:hover) .cursor-outline {
 }
 
 .logo {
-    font-family: var(--font-mono);
+    display: flex;
+    align-items: center;
+    /* gap: 0.5em; */
+    font-family: var(--font-logo);
     font-size: 1.8rem;
-    font-weight: bold;
+    font-weight: 100;
     z-index: 100000;
     color: var(--c-heading);
+}
+
+.logo strong {
+    font-weight: 300;
+}
+
+.logo-img {
+    height: 1em;
+    width: auto;
 }
 
 .controls {
