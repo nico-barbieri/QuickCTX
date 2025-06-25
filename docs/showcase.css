@@ -310,13 +310,13 @@ body:has(.pointable:hover) .cursor-outline {
     /* gap: 0.5em; */
     font-family: var(--font-logo);
     font-size: 1.8rem;
-    font-weight: 100;
+    font-weight: 200;
     z-index: 100000;
     color: var(--c-heading);
 }
 
 .logo strong {
-    font-weight: 300;
+    font-weight: 400;
 }
 
 .logo-img {
