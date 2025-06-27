@@ -30,14 +30,26 @@ import MenuCommand from "./MenuCommand.js";
  * @property {number} [hoverMenuOpenDelay=300] - Delay in ms before opening a hover-triggered menu.
  * @property {number} [hoverMenuCloseDelay=300] - Delay in ms before closing a hover-triggered menu.
  * @property {number} [submenuCloseDelay=200] - Delay in ms before closing submenus after mouse leave.
+ * @property {number} [holdDuration=500] - Duration in ms for a 'hold' gesture on touch devices.
  */
 
 /**
  * Configuration options for the QuickCTX context menu.
  * @typedef {object} QuickCTXOptions
- * @property {string} [defaultTrigger='contextmenu'] - The default trigger event for all menus ('contextmenu', 'click', 'dblclick', 'hover').
+ * @property {'contextmenu' | 'click' | 'dblclick' | 'hover'} [defaultTrigger='contextmenu'] - The default trigger event for all menus ('contextmenu', 'click', 'dblclick', 'hover').
+ * @property {'click' | 'mouseout' | 'auto'} [defaultCloseTrigger='auto'] - The default close behavior.
+ * 'click' closes on an outside click, 'mouseout' closes on mouse leave,
+ * and 'auto' uses 'mouseout' for hover-triggered menus and 'click' for all others.
+ * @property {'tap' | 'hold'} [defaultMobileTrigger='tap'] - The default trigger for touch devices ('tap', 'hold').
  * @property {'closest' | 'deepest'} [overlapStrategy='closest'] - Strategy for finding the target element when multiple are nested.
  * @property {'hide' | 'disable'} [globalFilterStrategy='hide'] - Global filter strategy for irrelevant commands.
+ * @property {string} [submenuArrow] -  Optional string containing the raw SVG markup for the submenu arrow icon.
+ * If omitted, a default chevron icon will be used.
+ * @example
+ * const myArrow = `<svg viewBox="0 0 24 24"><path d="M5 3l3.057-3 11.943 12-11.943 12-3.057-3 9-9z"/></svg>`;
+ * const ctx = new QuickCTX({ submenuArrow: myArrow });
+ * @property {Boolean} [ignoreLinks = true] - If true, menus will not be triggered by events originating from `<a>` tags or elements with an `href` attribute.
+ * @property {boolean} [ignoreButtons=true] - If true, menus will not be triggered by events originating from `<button>` or `<input>` elements of type button/submit/reset.
  * @property {QuickCTXClassesOptions} [classes] - Object containing customizable CSS classes.
  * @property {QuickCTXAnimationsOptions} [animations] - Object containing options for animations.
  */
@@ -62,9 +74,13 @@ import MenuCommand from "./MenuCommand.js";
  * @property {string|HTMLElement|HTMLElement[]} [selector] - An optional CSS selector, a single HTML element, or an array of elements to bind this menu to automatically.
  * @property {Array<MenuItemDefinition|MenuCommand>} structure - The array that defines the menu's structure and items.
  * @property {string} [headerText] - Optional text for the menu's header. If header is missing or empty, header will not be displayed.
- * @property {string} [triggerEvent] - Optional specific trigger event for this menu, overriding the global default.
+ * @property {'contextmenu' | 'click' | 'dblclick' | 'hover'} [triggerEvent] - Optional specific trigger event for this menu, overriding the global default.
+ * @property {'tap' | 'hold'} [mobileTriggerEvent] - Optional specific trigger for this menu on touch devices ('tap', 'hold'), overriding the global mobile default.
+ * @property {'contextmenu' | 'mouseout'} [closeTriggerEvent] - Optional close behavior for this menu ('click', 'mouseout'), overriding the default.
  * @property {'hide' | 'disable'} [filterStrategy] - Overrides the global filter strategy for this menu.
  * @property {string} [additionalClasses] - Space-separated list of additional classes to add to this menu.
+ * @property {boolean} [ignoreLinks] - Overrides the global `ignoreLinks` setting for this menu. Can be set to `false` to enable menus on links for this instance only.
+ * @property {boolean} [ignoreButtons] - Overrides the global `ignoreButtons` setting for this menu.
  */
 
 /**
@@ -72,9 +88,13 @@ import MenuCommand from "./MenuCommand.js";
  * @property {string} id - The unique ID for this menu configuration, used to link it to HTML elements.
  * @property {string} [headerTextTemplate=""] - A template for the menu's header text. If header is missing or empty, header will not be displayed. Use `{type}` to insert the target type dynamically (ex. "Element: {type}").
  * @property {Array<object|MenuCommand>} commands - An array of MenuCommand instances or configuration objects that define the menu's items.
- * @property {string} [triggerEvent] - Overrides the default trigger for this specific menu.
+ * @property {'contextmenu' | 'click' | 'dblclick' | 'hover'} [triggerEvent] - Overrides the default trigger for this specific menu.
+ * @property {'tap' | 'hold'} [mobileTriggerEvent] - Optional specific trigger for this menu on touch devices ('tap', 'hold'), overriding the global mobile default.
+ * @property {'click' | 'mouseout'} [closeTriggerEvent] - Optional close behavior for this menu ('click', 'mouseout'), overriding the default.
  * @property {'hide' | 'disable'} [filterStrategy] - Overrides the global filter strategy for this menu.
  * @property {string} [additionalClasses] - Space-separated list of additional classes to add to a specific menu.
+ * @property {boolean} [ignoreLinks] - Overrides the global `ignoreLinks` setting for this menu. Can be set to `false` to enable menus on links for this instance only.
+ * @property {boolean} [ignoreButtons] - Overrides the global `ignoreButtons` setting for this menu.
  */
 
 /**
@@ -102,10 +122,20 @@ class QuickCTX {
      * @param {QuickCTXOptions} [options={}] - Global configuration options for the library.
      */
     constructor(options = {}) {
+        this.isTouchDevice =
+            "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+        const defaultSubmenuArrow = `<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"><path fill="currentColor" d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L9.94 8L6.22 4.28a.75.75 0 0 1 0-1.06z"/></svg>`;
+
         const defaultOptions = {
             defaultTrigger: "contextmenu", //choice of trigger
+            defaultMobileTrigger: "tap",
+            defaultCloseTrigger: "auto",
             overlapStrategy: "closest", // closest or deepest
             globalFilterStrategy: "hide", // hide or gray out filtered commands
+            submenuArrow: defaultSubmenuArrow,
+            ignoreButtons: true,
+            ignoreLinks: true,
             classes: {
                 // css classes to assign to various elements
                 container: "quickctx-container",
@@ -130,6 +160,7 @@ class QuickCTX {
                 hoverMenuOpenDelay: 450,
                 hoverMenuCloseDelay: 300, // Option for hover-triggered menus
                 submenuCloseDelay: 200, // Delay before closing submenus
+                holdDuration: 500,
             },
         };
 
@@ -155,7 +186,7 @@ class QuickCTX {
 
         /**
          * A map of menu configurations, keyed by menu ID. Each menu configuration represent a combination of commands associated with a specific target type.
-         * @type {Object.<string, object>}
+         * @type {Object.<string, ContextMenuConfigOptions>}
          * @private
          */
         this.menuConfigurations = {};
@@ -218,6 +249,8 @@ class QuickCTX {
 
         this.submenuCloseTimeout = null;
 
+        this.touchState = {};
+
         // EVENT HANDLERS TO OPEN AND CLOSE MENUS
 
         // Bind 'this' context for all event handlers consistently to maintain instance scope.
@@ -234,6 +267,11 @@ class QuickCTX {
         this._boundHandleHoverEnter = this._cancelHoverHide.bind(this);
         this._boundHandleHoverLeave = this._scheduleHoverHide.bind(this);
         this._boundCancelHoverOpen = this._cancelHoverOpen.bind(this);
+
+        // touch events
+        this._boundHandleTouchStart = this._handleTouchStart.bind(this);
+        this._boundHandleTouchMove = this._handleTouchMove.bind(this);
+        this._boundHandleTouchEnd = this._handleTouchEnd.bind(this);
 
         this._init(); // Initialize the context menu manager
     }
@@ -260,6 +298,133 @@ class QuickCTX {
         });
         // Re-setup event listeners to reflect potential changes in the default trigger.
         this._setupEventListeners();
+    }
+
+    /********** TOUCH EVENT HANDLERS **********/
+
+    _handleTouchStart(event) {
+        if (this.activeMenuElement) return;
+
+        const targetElement = event.target.closest("[data-custom-ctxmenu]");
+
+        if (!targetElement) return;
+
+        const menuId = targetElement.getAttribute("data-custom-ctxmenu");
+        const config = this.menuConfigurations[menuId];
+        if (!config) return;
+
+        const shouldIgnoreLinks =
+            config.ignoreLinks ?? this.options.ignoreLinks;
+        const shouldIgnoreButtons =
+            config.ignoreButtons ?? this.options.ignoreButtons;
+
+        if (shouldIgnoreLinks && event.target.closest("a, [href]")) return;
+        if (
+            shouldIgnoreButtons &&
+            event.target.closest(
+                'button, input[type="button"], input[type="submit"], input[type="reset"]'
+            )
+        )
+            return;
+
+        const expectedMobileTrigger =
+            config.mobileTriggerEvent || this.options.defaultMobileTrigger;
+
+        if (expectedMobileTrigger === "hold") {
+            event.preventDefault();
+        }
+
+        document.addEventListener("touchmove", this._boundHandleTouchMove, {
+            passive: true,
+        });
+        document.addEventListener("touchend", this._boundHandleTouchEnd);
+
+        const touch = event.touches[0];
+
+        this.touchState = {
+            targetElement,
+            config,
+            startTime: Date.now(),
+            startCoords: { x: touch.clientX, y: touch.clientY },
+            isHolding: false,
+            timeout: null,
+        };
+
+        if (expectedMobileTrigger === "hold") {
+            this.touchState.timeout = setTimeout(() => {
+                this.touchState.isHolding = true;
+
+                const mockEvent = {
+                    clientX: this.touchState.startCoords.x,
+                    clientY: this.touchState.startCoords.y,
+                    preventDefault: () => {},
+                    stopPropagation: () => {},
+                };
+
+                this._openMenu(
+                    this.touchState.config,
+                    this.touchState.targetElement,
+                    mockEvent
+                );
+            }, this.options.animations.holdDuration);
+        }
+    }
+
+    _handleTouchMove(event) {
+        if (!this.touchState || !this.touchState.timeout) return;
+
+        const touch = event.touches[0];
+        const deltaX = Math.abs(touch.clientX - this.touchState.startCoords.x);
+        const deltaY = Math.abs(touch.clientY - this.touchState.startCoords.y);
+
+        if (deltaX > 15 || deltaY > 15) {
+            clearTimeout(this.touchState.timeout);
+            this.touchState = null;
+
+            document.removeEventListener(
+                "touchmove",
+                this._boundHandleTouchMove
+            );
+            document.removeEventListener("touchend", this._boundHandleTouchEnd);
+        }
+    }
+
+    _handleTouchEnd(event) {
+        if (!this.touchState) return;
+
+        clearTimeout(this.touchState.timeout);
+        const duration = Date.now() - this.touchState.startTime;
+
+        document.removeEventListener("touchmove", this._boundHandleTouchMove);
+        document.removeEventListener("touchend", this._boundHandleTouchEnd);
+
+        if (this.touchState.isHolding) {
+            this.touchState = null;
+            return;
+        }
+
+        const expectedMobileTrigger =
+            this.touchState.config.mobileTriggerEvent ||
+            this.options.defaultMobileTrigger;
+
+        if (duration < 300 && expectedMobileTrigger === "tap") {
+            const mockEvent = {
+                clientX: this.touchState.startCoords.x,
+                clientY: this.touchState.startCoords.y,
+                preventDefault: () => {},
+                stopPropagation: () => {},
+            };
+
+            event.preventDefault();
+
+            this._openMenu(
+                this.touchState.config,
+                this.touchState.targetElement,
+                mockEvent
+            );
+        }
+
+        this.touchState = null;
     }
 
     /********** LOG **********/
@@ -334,6 +499,21 @@ class QuickCTX {
             document.removeEventListener(trigger, this._boundHandleTrigger);
         });
 
+        document.removeEventListener("touchstart", this._boundHandleTouchStart);
+
+        if (this.isTouchDevice) {
+            document.addEventListener(
+                "touchstart",
+                this._boundHandleTouchStart,
+                { passive: false }
+            );
+
+            this._log({
+                event: "setupListeners",
+                message: "Touch event listeners enabled.",
+            });
+        }
+
         // Collect all unique triggers from the default options and all registered menu configurations.
         const activeTriggers = new Set([this.options.defaultTrigger]);
         Object.values(this.menuConfigurations).forEach((config) => {
@@ -367,6 +547,11 @@ class QuickCTX {
      * @private
      */
     _handleTriggerEvent(event) {
+        if (this.isTouchDevice && event.type === "contextmenu") {
+            event.preventDefault();
+            return;
+        }
+
         this._log({
             event: "handleTrigger",
             message: `Handling trigger event: ${event.type}`,
@@ -414,6 +599,20 @@ class QuickCTX {
             throw new Error(`No menu configuration found for ID: ${menuId}`);
         }
 
+        const shouldIgnoreLinks =
+            config.ignoreLinks ?? this.options.ignoreLinks;
+        const shouldIgnoreButtons =
+            config.ignoreButtons ?? this.options.ignoreButtons;
+
+        if (shouldIgnoreLinks && event.target.closest("a, [href]")) return;
+        if (
+            shouldIgnoreButtons &&
+            event.target.closest(
+                'button, input[type="button"], input[type="submit"], input[type="reset"]'
+            )
+        )
+            return;
+
         const eventTriggerType =
             event.type === "mouseover" ? "hover" : event.type;
 
@@ -435,22 +634,10 @@ class QuickCTX {
         ) {
             this._cancelHoverOpen();
             this.hoverOpenTimeout = setTimeout(() => {
-                this._openMenu(
-                    config,
-                    targetElement,
-                    event,
-                    expectedTrigger,
-                    menuId
-                );
+                this._openMenu(config, targetElement, event);
             }, this.options.animations.hoverMenuOpenDelay);
         } else {
-            this._openMenu(
-                config,
-                targetElement,
-                event,
-                expectedTrigger,
-                menuId
-            );
+            this._openMenu(config, targetElement, event);
         }
     }
 
@@ -523,7 +710,7 @@ class QuickCTX {
      * @param {Event} event - The original trigger event.
      * @private
      */
-    _openMenu(config, targetElement, event, expectedTrigger, menuId) {
+    _openMenu(config, targetElement, event) {
         // If another menu is already active, start its closing animation without waiting.
         if (
             this.activeMenuElement &&
@@ -567,13 +754,46 @@ class QuickCTX {
 
         this._log({
             event: "_openMenu",
-            message: `Opened menu ${menuId} for target type: ${targetType}`,
+            message: `Opened menu ${this.menuConfigurations.id} for target type: ${targetType}`,
         });
 
-        // Setup hover-out listeners only for hover-triggered menus
-        if (expectedTrigger === "hover") {
-            this._setupHoverListeners(targetElement, this.activeMenuElement);
+        const trigger = this.isTouchDevice
+            ? config.mobileTriggerEvent || this.options.defaultMobileTrigger
+            : config.triggerEvent || this.options.defaultTrigger;
+
+        let effectiveCloseTrigger =
+            config.closeTriggerEvent || this.options.defaultCloseTrigger;
+
+        if (effectiveCloseTrigger === "auto") {
+            effectiveCloseTrigger = trigger === "hover" ? "mouseout" : "click";
         }
+
+        if (effectiveCloseTrigger === "mouseout" && !this.isTouchDevice) {
+            this._setupHoverListeners(targetElement, this.activeMenuElement);
+            this._log({
+                event: "setupCloseListeners",
+                message: "Using 'mouseout' close trigger.",
+            });
+        } else {
+            //add listener to close at the end
+            setTimeout(() => {
+                document.addEventListener(
+                    "click",
+                    this._boundOutsideClick,
+                    true
+                );
+                if (this.activeMenuElement) {
+                }
+            }, 0);
+
+            this._log({
+                event: "setupCloseListeners",
+                message: "Using 'click' close trigger.",
+            });
+        }
+
+        document.addEventListener("keydown", this._boundHandleKeydown);
+        window.addEventListener("scroll", this._boundHandleScroll, true);
     }
 
     _scheduleHoverHide() {
@@ -765,6 +985,7 @@ class QuickCTX {
             // Reset state only if the menu being hidden is the active one.
 
             if (this.activeMenuElement === menuToHide) {
+                const target = this.currentTargetElement;
                 this.activeMenuElement = null;
                 this.currentTargetElement = null;
 
@@ -784,6 +1005,26 @@ class QuickCTX {
                     "scroll",
                     this._boundHandleScroll,
                     true
+                );
+
+                if (target) {
+                    target.removeEventListener(
+                        "mouseleave",
+                        this._boundHandleHoverLeave
+                    );
+                    target.removeEventListener(
+                        "mouseenter",
+                        this._boundHandleHoverEnter
+                    );
+                }
+
+                menuToHide.removeEventListener(
+                    "mouseleave",
+                    this._boundHandleHoverLeave
+                );
+                menuToHide.removeEventListener(
+                    "mouseenter",
+                    this._boundHandleHoverEnter
                 );
             }
         };
@@ -808,6 +1049,76 @@ class QuickCTX {
                     : null,
             },
         });
+    }
+
+    /**
+     * Programmatically opens a context menu for a given target element.
+     * @param {string|HTMLElement} targetOrSelector - The target element or a CSS selector for it.
+     * @param {number} [x=-1] - Optional X coordinate. If -1, the menu is centered on the target.
+     * @param {number} [y=-1] - Optional Y coordinate. If -1, the menu is centered on the target.
+     * @returns {boolean} Returns `true` if the menu was opened successfully, otherwise `false`.
+     */
+    openMenu(targetOrSelector, x = -1, y = -1) {
+        const targetElement =
+            typeof targetOrSelector === "string"
+                ? document.querySelector(targetOrSelector)
+                : targetOrSelector;
+
+        if (!targetElement || !(targetElement instanceof HTMLElement)) {
+            this._log({
+                event: "openMenu",
+                message: "Invalid target element provided.",
+                isError: true,
+            });
+            return false;
+        }
+
+        const menuId = targetElement.getAttribute("data-custom-ctxmenu");
+        if (!menuId) {
+            this._log({
+                event: "openMenu",
+                message: `Target element has no 'data-custom-ctxmenu' attribute.`,
+                isError: true,
+            });
+            return false;
+        }
+
+        const config = this.menuConfigurations[menuId];
+        if (!config) {
+            this._log({
+                event: "openMenu",
+                message: `No menu configuration found for ID: ${menuId}`,
+                isError: true,
+            });
+            return false;
+        }
+
+        let finalX = x;
+        let finalY = y;
+
+        if (x === -1 || y === -1) {
+            const rect = targetElement.getBoundingClientRect();
+            finalX = rect.left + rect.width / 2;
+            finalY = rect.top + rect.height / 2;
+        }
+
+        const mockEvent = {
+            clientX: finalX,
+            clientY: finalY,
+            preventDefault: () => {},
+            stopPropagation: () => {},
+        };
+
+        this._openMenu(config, targetElement, mockEvent);
+        return true;
+    }
+
+    /**
+     * Programmatically closes any currently active menu.
+     * @param {boolean} [instant=false] - If true, closes the menu instantly without animation.
+     */
+    closeMenu(instant = false) {
+        this._hideMenu(this.activeMenuElement, instant);
     }
 
     /********** DOM BUILD **********/
@@ -890,9 +1201,10 @@ class QuickCTX {
                 this.options.classes.sublistCommand,
                 "has-submenu-arrow"
             );
-            li.appendChild(
-                createElement("span", "submenu-arrow", {}, " \u25B6")
-            );
+            const arrowSpan = createElement("span", "submenu-arrow");
+
+            arrowSpan.innerHTML = this.options.submenuArrow;
+            li.appendChild(arrowSpan);
         }
 
         if (command.type === "action") {
@@ -1055,21 +1367,15 @@ class QuickCTX {
 
         if (visibleItems > 0) {
             menuToBuild.appendChild(ul);
-            this._showMenuDOM(menuToBuild, x, y, parentCommand, additionalClasses);
-            if (!parentMenuElement) {
-                // add closing listeners when the main menu is shown
-                document.addEventListener(
-                    "click",
-                    this._boundOutsideClick,
-                    true
-                );
-                document.addEventListener("keydown", this._boundHandleKeydown);
-                window.addEventListener(
-                    "scroll",
-                    this._boundHandleScroll,
-                    true
-                );
-            }
+            this._showMenuDOM(
+                menuToBuild,
+                x,
+                y,
+                targetElement,
+                parentMenuElement !== null,
+                parentCommand,
+                additionalClasses
+            );
         } else {
             this._hideMenu(this.activeMenuElement, true); //hide instantly if empty
         }
@@ -1082,15 +1388,6 @@ class QuickCTX {
         }
         menuToBuild.appendChild(ul);
 
-        this._showMenuDOM(
-            menuToBuild,
-            x,
-            y,
-            targetElement,
-            parentMenuElement !== null,
-            parentCommand,
-            additionalClasses
-        );
         if (!parentMenuElement) {
             document.addEventListener("click", this._boundOutsideClick, true);
             document.addEventListener("keydown", this._boundHandleKeydown);
@@ -1108,13 +1405,17 @@ class QuickCTX {
         y,
         targetElement,
         isSubmenu,
-        parentCommand, 
+        parentCommand,
         additionalClasses
     ) {
         menuDomElement.style.display = "block";
         menuDomElement.classList.remove(this.options.classes.closing);
         menuDomElement.classList.add(this.options.classes.opening);
-        additionalClasses?.split(" ").forEach(additionalClass => menuDomElement.classList.add(additionalClass));
+        additionalClasses
+            ?.split(" ")
+            .forEach((additionalClass) =>
+                menuDomElement.classList.add(additionalClass)
+            );
 
         const menuRect = menuDomElement.getBoundingClientRect();
         const docWidth = window.innerWidth;
@@ -1192,6 +1493,12 @@ class QuickCTX {
             commands,
             triggerEvent:
                 configOptions.triggerEvent || this.options.defaultTrigger,
+            mobileTriggerEvent:
+                configOptions.mobileTriggerEvent ||
+                this.options.defaultMobileTrigger,
+            closeTriggerEvent:
+                configOptions.closeTriggerEvent ||
+                this.options.defaultCloseTrigger,
             filterStrategy:
                 configOptions.filterStrategy ||
                 this.options.globalFilterStrategy,
@@ -1256,7 +1563,10 @@ class QuickCTX {
     updateMenuCommand(menuId, action, updates) {
         const menuConfig = this.menuConfigurations[menuId];
 
-        action = typeof action === "function" ? this.functionActionMap.get(action) : action;
+        action =
+            typeof action === "function"
+                ? this.functionActionMap.get(action)
+                : action;
 
         if (!menuConfig) {
             this._log({
@@ -1264,7 +1574,7 @@ class QuickCTX {
                 message: `Menu with ID "${menuId}" not found.`,
                 isError: true,
             });
-            
+
             return false;
         }
 
@@ -1303,7 +1613,6 @@ class QuickCTX {
                 message: `Command not found in menu "${menuId}".`,
                 isError: true,
             });
-
         }
 
         return wasCommandUpdated;
@@ -1383,8 +1692,12 @@ class QuickCTX {
         structure,
         headerText,
         triggerEvent,
+        mobileTriggerEvent,
+        closeTriggerEvent,
         filterStrategy,
-        additionalClasses
+        additionalClasses,
+        ignoreButtons,
+        ignoreLinks
     }) {
         if (!menuId || !structure) {
             this._log({
@@ -1429,7 +1742,11 @@ class QuickCTX {
                         let actionName = this.functionActionMap.get(actionFunc);
 
                         if (!actionName) {
-                            actionName = `quickctx-action-${crypto.randomUUID()}`;
+                            const uniqueId = window.crypto?.randomUUID
+                                ? crypto.randomUUID()
+                                : Date.now().toString(36) +
+                                  Math.random().toString(36).substring(2);
+                            actionName = `quickctx-action-${uniqueId}`;
                             this.registerAction(actionName, actionFunc);
                             this.functionActionMap.set(actionFunc, actionName);
                         }
@@ -1470,8 +1787,12 @@ class QuickCTX {
             headerTextTemplate: headerText,
             commands,
             triggerEvent,
+            mobileTriggerEvent,
+            closeTriggerEvent,
             filterStrategy,
-            additionalClasses
+            additionalClasses,
+            ignoreButtons,
+            ignoreLinks
         };
 
         this.addMenuConfiguration(menuConfig);

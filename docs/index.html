@@ -20,7 +20,8 @@
 
     <!-- styles -->
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@nicobarbieri/quickctx/dist/quickctx.css">
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@nicobarbieri/quickctx/dist/quickctx.css"> -->
+    <link rel="stylesheet" href="../src/styles/default.css">
 
     <link rel="stylesheet" href="./showcase.css">
 
@@ -153,18 +154,35 @@ ctxManager.createAndBindMenu({
                 <div class="controls-group">
                     <div id="trigger-controls">
                         <span>Trigger:</span>
-                        <button class="control-btn pointable" data-trigger="contextmenu">Right-Click</button>
-                        <button class="control-btn active pointable" data-trigger="click">Left-Click</button>
-                        <button class="control-btn pointable" data-trigger="hover">Hover</button>
-                        <button class="control-btn pointable" data-trigger="dblclick">Double-Click</button>
+                        <div id="desktop-triggers">
+                            <button class="control-btn pointable" data-trigger="contextmenu">Right-Click</button>
+                            <button class="control-btn pointable" data-trigger="click">Left-Click</button>
+                            <button class="control-btn pointable" data-trigger="hover">Hover</button>
+                            <button class="control-btn pointable" data-trigger="dblclick">Double-Click</button>
+                        </div>
+                        <div id="mobile-triggers" style="display: none;">
+                            <button class="control-btn pointable" data-trigger="tap">Tap</button>
+                            <button class="control-btn pointable" data-trigger="hold">Hold</button>
+                        </div>
                     </div>
-                    <div id="delay-control" class="delay-slider-group">
+
+                    <div id="hover-delay-control" class="delay-slider-group" style="display: none;">
                         <label for="hover-delay-slider">Hover Open/Close Delay: <span
                                 id="hover-delay-value">300</span>ms</label>
                         <div class="pointable hide-outline-on-hover">
                             <input type="range" id="hover-delay-slider" min="0" max="1000" value="300" step="50">
                         </div>
                     </div>
+
+                    <div id="hold-duration-control" class="delay-slider-group" style="display: none;">
+                        <label for="hold-duration-slider">Hold Duration: <span
+                                id="hold-duration-value">500</span>ms</label>
+                        <div class="pointable hide-outline-on-hover">
+                            <input type="range" id="hold-duration-slider" min="200" max="1500" value="500" step="50">
+                        </div>
+                    </div>
+
+                    <p id="trigger-note" style="font-size: 0.8em; opacity: 0.7; margin-top: 0.5rem;"></p>
                 </div>
                 <pre><code class="language-javascript">ctxManager.updateMenuConfiguration("trigger", {triggerEvent: selectedTrigger})
 
@@ -379,6 +397,12 @@ QuickCTX.setLoggerIsEnabled(true);
                         supporting the project. It helps me dedicate
                         more time to projects like this one. Every little bit makes a
                         huge difference. Thank you! 💙</p>
+
+                    <p style="margin-top: 2rem; font-size: 0.9em; opacity: 0.8; max-width: 60ch;">
+                        For a comprehensive guide to all options, methods, and advanced features, please check out the
+                        full <a href="https://github.com/nico-barbieri/QuickCTX#readme" target="_blank"
+                            style="color: white; text-decoration: underline;">README on GitHub</a>.
+                    </p>
                 </div>
             </div>
         </section>
@@ -387,7 +411,7 @@ QuickCTX.setLoggerIsEnabled(true);
 
     <script src="./showcase.js" type="module"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@nicobarbieri/quickctx/dist/quickctx.umd.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@nicobarbieri/quickctx/dist/quickctx.umd.min.js"></script> -->
 
     <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
     <script>

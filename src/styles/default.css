@@ -131,13 +131,16 @@
 }
 
 .quickctx-container .quickctx-item.quickctx-sublist-command .submenu-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     position: absolute;
-    padding: 0 8px;
-    right: 8px;
+    right: 0.75em;
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.8em;
     color: var(--quickctx-text-color);
+    position: absolute;
 }
 
 .quickctx-container .quickctx-item.quickctx-sublist-command:hover .submenu-arrow {

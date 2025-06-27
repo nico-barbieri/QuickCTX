@@ -1,6 +1,8 @@
 /* import { QuickCTX, MenuCommand } from '@nicobarbieri/quickctx'; */
 
-const { QuickCTX, MenuCommand } = window.QuickCTX;
+/* const { QuickCTX, MenuCommand } = window.QuickCTX;
+ */
+import { QuickCTX, MenuCommand } from "../src/index.js";
 
 import {
     launchConfetti,
@@ -22,6 +24,7 @@ import { showToast, init3dBoxes, goToSection } from "./utils/utils.js";
 
 const ctxManager = new QuickCTX({
     overlapStrategy: "deepest",
+    defaultMobileTrigger: "tap",
     classes: {
         container: "quickctx-container pointable hide-outline-on-hover",
         item: "quickctx-item transition-all",
@@ -35,9 +38,9 @@ document.addEventListener("DOMContentLoaded", () => {
         initCustomCursor();
         init3dBoxes();
         initScrollspyNav();
-        initAllMenus();
         initInteractiveControls();
         initGlobalEventListener();
+        initAllMenus();
     }
 
     // Manage dark/light theme switch
@@ -98,26 +101,24 @@ document.addEventListener("DOMContentLoaded", () => {
         const smoothingFactor = 8;
 
         const animateOutline = (currentTime) => {
-
             if (lastTime === 0) {
                 lastTime = currentTime;
             }
-            
-            
+
             const deltaTime = currentTime - lastTime;
-            const smoothing = 1 - Math.pow(1 - 1/smoothingFactor, deltaTime / 16.67);
-            
-            
+            const smoothing =
+                1 - Math.pow(1 - 1 / smoothingFactor, deltaTime / 16.67);
+
             outlineX += (mouseX - (outlineX + outlineRadius)) * smoothing;
             outlineY += (mouseY - (outlineY + outlineRadius)) * smoothing;
-            
+
             outline.style.transform = `translate(${outlineX}px, ${outlineY}px)`;
 
             lastTime = currentTime;
 
             requestAnimationFrame(animateOutline);
         };
-        
+
         requestAnimationFrame(animateOutline);
     }
 
@@ -461,35 +462,70 @@ function initGlobalEventListener() {
 
 // manage trigger update example
 function initInteractiveControls() {
-    const triggerButtons = document.querySelectorAll(
-        "#trigger-controls .control-btn"
-    );
-    const delaySlider = document.querySelector("#hover-delay-slider");
-    const delayValueSpan = document.querySelector("#hover-delay-value");
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    let currentTrigger = "click";
-    let currentDelay = 150;
+    const triggerControls = document.getElementById("trigger-controls");
+    const desktopTriggers = document.getElementById("desktop-triggers");
+    const mobileTriggers = document.getElementById("mobile-triggers");
+    const triggerNote = document.getElementById("trigger-note");
 
-    triggerButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-            triggerButtons.forEach((btn) => btn.classList.remove("active"));
-            button.classList.add("active");
-            currentTrigger = button.dataset.trigger;
-            ctxManager.updateMenuConfiguration("trigger", {
-                triggerEvent: currentTrigger,
-            });
+    const hoverDelayControl = document.getElementById("hover-delay-control");
+    const holdDurationControl = document.getElementById("hold-duration-control");
+    
+    const hoverDelaySlider = document.getElementById("hover-delay-slider");
+    const hoverDelayValueSpan = document.getElementById("hover-delay-value");
+    
+    const holdDurationSlider = document.getElementById("hold-duration-slider");
+    const holdDurationValueSpan = document.getElementById("hold-duration-value");
+
+    // Setup the UI based on the device type
+    if (isTouchDevice) {
+        desktopTriggers.style.display = 'none';
+        mobileTriggers.style.display = 'flex';
+        // Set 'tap' as the default active button for mobile
+        const tapButton = mobileTriggers.querySelector('[data-trigger="tap"]');
+        if(tapButton) tapButton.classList.add('active');
+
+        triggerNote.textContent = "* On desktop, you can choose between 'contextmenu', 'click', 'dblclick', and 'hover'.";
+        ctxManager.updateMenuConfiguration("trigger", { mobileTriggerEvent: 'tap' });
+
+    } else {
+        // Set 'click' as the default active button for desktop
+        const clickButton = desktopTriggers.querySelector('[data-trigger="click"]');
+        if(clickButton) clickButton.classList.add('active');
+
+        triggerNote.textContent = "* On touch devices, you can choose between 'tap' and 'hold'.";
+        ctxManager.updateMenuConfiguration("trigger", { triggerEvent: 'click' });
+    }
+
+    triggerControls.addEventListener("click", (e) => {
+        if (!e.target.matches('.control-btn')) return;
+
+        const button = e.target;
+        triggerControls.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+
+        const currentTrigger = button.dataset.trigger;
+
+        ctxManager.updateMenuConfiguration("trigger", {
+            triggerEvent: currentTrigger, // Used by desktop
+            mobileTriggerEvent: currentTrigger // Used by mobile
         });
+        
+        // Show/hide the relevant slider controls
+        hoverDelayControl.style.display = currentTrigger === 'hover' ? 'flex' : 'none';
+        holdDurationControl.style.display = currentTrigger === 'hold' ? 'flex' : 'none';
     });
 
-    delaySlider.addEventListener("input", (e) => {
-        currentDelay = parseInt(e.target.value, 10);
-        delayValueSpan.textContent = currentDelay;
+    hoverDelaySlider.addEventListener("input", (e) => {
+        const delay = parseInt(e.target.value, 10);
+        hoverDelayValueSpan.textContent = delay;
+        ctxManager.updateOptions({ animations: { hoverMenuOpenDelay: delay, hoverMenuCloseDelay: delay } });
+    });
 
-        ctxManager.updateOptions({
-            animations: {
-                hoverMenuOpenDelay: currentDelay,
-                hoverMenuCloseDelay: currentDelay,
-            },
-        });
+    holdDurationSlider.addEventListener("input", (e) => {
+        const duration = parseInt(e.target.value, 10);
+        holdDurationValueSpan.textContent = duration;
+        ctxManager.updateOptions({ animations: { holdDuration: duration } });
     });
 }

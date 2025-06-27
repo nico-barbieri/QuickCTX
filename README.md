@@ -1,4 +1,4 @@
-# ![QuickCTX Logo](./docs/res/QuickCTXLogoSimpleColor.svg "QuickCTX Logo") QuickCTX ✨
+# ![QuickCTX Logo](./docs/res/QuickCTXLogoSimpleColor.svg "QuickCTX Logo") QuickCTX
 
 **A simple, powerful, and fast library for creating custom context menus on any HTML element.**
 
@@ -18,6 +18,11 @@ QuickCTX allows you to build **beautiful, fully functional, and deeply nested co
 2. [Installation](#-installation)
 3. [Quick Start](#-quick-start)
 4. [Core Concepts](#-core-concepts)
+    1.  [The `QuickCTX` Manager](#1-the-quickctx-manager)
+    2.  [Creating & Configuring Menus](#2-creating--configuring-menus)
+    3.  [Powerful Contextual Logic with `targetTypes`](#3-powerful-contextual-logic-with-targettypes)
+    4.  [Handling Actions](#4-handling-actions)
+    5.  [Mobile & Touch Devices](#5-mobile--touch-devices)
 5. [Styling & Theming](#-styling--theming)
 6. [Advanced Configuration & API Reference](#️-advanced-configuration--api-reference)
 7. [Support the project <3](#️-support-the-project)
@@ -117,7 +122,7 @@ const ctxManager = new QuickCTX({
 ```
 All available configuration options are detailed in the [Advanced Configuration & API Reference](#️-advanced-configuration--api-reference) section.
 
-### 2. Creating & Configuring Menus
+#### 2. Creating & Configuring Menus
 
 The `createAndBindMenu` method is your primary tool. It takes a single configuration object to define a menu's content and behavior, and automatically binds it to the specified HTML elements.
 
@@ -141,8 +146,12 @@ ctxManager.createAndBindMenu({
 | `defaultTargetType`   | `string`                         | A default "type" to apply to all commands in this menu, useful for contextual filtering.                 |
 | `headerText`          | `string`                         | Optional text for the menu's header. Can use `{type}` for dynamic replacement (e.g., "Actions for {type}"). |
 | `triggerEvent`        | `string`                         | Overrides the global `defaultTrigger` for this specific menu.                                            |
+| `mobileTriggerEvent` | `string`                         | Overrides the global `defaultMobileTrigger` for this menu. Options: `'tap'`, `'hold'`. |
+| `closeTriggerEvent`  | `string`                         | Overrides the global `defaultCloseTrigger`. Options: `'click'`, `'mouseout'`. |
 | `filterStrategy`      | `string`                         | Overrides the global `globalFilterStrategy` for this specific menu.                                      |
 | `additionalClasses`      | `string`                         | Space-separated list of additional classes to add to the menu.                                      |
+| `ignoreLinks`        | `boolean`                        | Overrides the global `ignoreLinks` setting for this menu. Set to `false` to enable menus on links. |
+| `ignoreButtons`      | `boolean`                        | Overrides the global `ignoreButtons` setting for this menu. Set to `false` to enable menus on buttons. |
 
 #### Command Object Properties (`structure` array items)
 
@@ -221,6 +230,28 @@ document.addEventListener('QuickCTXActionSelected', (e) => {
   console.log(`User selected '${commandLabel}' on an element of type '${targetType}'`);
 });
 ```
+
+### 5. Mobile & Touch Devices
+
+QuickCTX is designed to work seamlessly on touch devices. You can specify different trigger behaviors for mobile versus desktop.
+
+* **`tap` vs. `hold`**: You can configure menus to open on a short tap (`'tap'`) or a long press (`'hold'`). The library defaults to `'tap'` for mobile, as it's the most common and intuitive user interaction.
+* **Robust Handling**: The touch event system has been rewritten to be highly reliable, preventing "ghost clicks" that can accidentally close menus and correctly handling scroll gestures to avoid unwanted menu openings.
+
+You can set the mobile trigger globally in the constructor or on a per-menu basis:
+
+```javascript
+// Global configuration
+const ctxManager = new QuickCTX({
+  defaultMobileTrigger: 'hold' // Make all menus open on a long press by default
+});
+
+// Per-menu override
+ctxManager.createAndBindMenu({
+  menuId: 'my-tap-menu',
+  selector: '#some-element',
+  mobileTriggerEvent: 'tap' // This specific menu will open on a tap
+});
 
 ## 🎨 Styling & Theming
 
@@ -314,8 +345,13 @@ You can pass a configuration object to the `new QuickCTX(options)` constructor t
 | Property                 | Type     | Default         | Description                                                                                                    |
 | ------------------------ | -------- | --------------- | -------------------------------------------------------------------------------------------------------------- |
 | `defaultTrigger`         | `string` | `'contextmenu'` | Default trigger event. Options: `'contextmenu'`, `'click'`, `'dblclick'`, `'hover'`.                             |
+| `defaultMobileTrigger`   | `string`  | `'tap'`         | Default trigger for touch devices. Options: `'tap'`, `'hold'`.                                                 |
+| `defaultCloseTrigger`    | `string`  | `'auto'`        | Default close behavior. Options: `'click'`, `'mouseout'`, `'auto'`. `'auto'` uses `'mouseout'` for hover triggers and `'click'` for others.                |
 | `globalFilterStrategy`   | `string` | `'hide'`        | What to do with commands that don't match the element type. Options: `'hide'`, `'disable'`.                      |
 | `overlapStrategy`        | `string` | `'closest'`     | For nested elements, which menu to show. Options: `'closest'`, `'deepest'`.                                      |
+| `ignoreLinks`            | `boolean` | `true`          | If `true`, menus will not open on `<a>` tags or elements with an `href` attribute.                               |
+| `ignoreButtons`          | `boolean` | `true`          | If `true`, menus will not open on `<button>` or interactive `<input>` elements.                                |
+| `submenuArrow`           | `string`  | `(default SVG)` | An HTML string with the raw SVG markup for the submenu arrow icon.                                             |
 | `animations`             | `object` | `{...}`         | An object to control all animation timings. See table below.                                                   |
 | `classes`                | `object` | `{...}`         | An object to override default CSS class names. See table below.                                                |
 
@@ -329,6 +365,7 @@ You can pass a configuration object to the `new QuickCTX(options)` constructor t
 | `hoverMenuCloseDelay`   | `number` | `300`   | Delay in ms before a hover-triggered menu closes after mouseout.   |
 | `submenuOpenDelay`      | `number` | `150`   | Delay in ms for opening submenus on hover.                         |
 | `submenuCloseDelay`     | `number` | `200`   | Delay in ms before closing submenus after mouse leave.             |
+| `holdDuration`          | `number` | `500`   | Duration in ms for a 'hold' gesture on touch devices.              |
 
 #### `classes` Object
 
@@ -375,12 +412,14 @@ You can pass a configuration object to the `new QuickCTX(options)` constructor t
 | Method                                       | Description                                                                                           |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `createAndBindMenu(menuOptions)`             | The primary method to create, configure, and bind a menu in a single call.                            |
-| `addMenuConfiguration(config)`               | Adds a menu configuration to the manager without binding it to any elements.                          |
+| `addMenuConfiguration(config)`               | Adds a menu configuration to the manager without binding it. This is a lower-level method for advanced use cases where you might want to separate configuration from binding.<br><br><blockquote>**Note:** The `config` object for this method is slightly different from `createAndBindMenu`:<br>- It uses `id` (not `menuId`) for the menu identifier.<br>- It expects a `commands` property (an array of pre-instantiated `MenuCommand` objects) instead of `structure`.<br>- It does not accept a `selector` property, as it does not perform binding.</blockquote> |
 | `updateMenuConfiguration(menuId, newOptions)` | Updates an existing menu configuration at runtime (e.g., to change its trigger).     |
 | `updateMenuCommand(menuId, action, updates)` | Updates one or more properties of a specific command at runtime, searching by its associated action (the string used to register it or the function itself) and menu id. |
 | `bindMenuToElements(selector, menuId, type)` | Binds an existing menu configuration to one or more elements.                                         |
 | `unbindMenuFromElements(selector)`           | Removes menu bindings from one or more elements.                                                      |
 | `registerAction(name, callback)`             | Registers a named action that can be referenced by string in the `structure` array.                   |
+| `openMenu(target, x, y)`                     | Programmatically opens a menu for a given element, optionally at specific coordinates.                |
+| `closeMenu(instant)`                         | Programmatically closes any active menu, with an option for no animation.                             |
 | `setLogger(loggerFunction)`                  | Sets a custom function to handle library logs (e.g., to display them in a custom UI element).          |
 | `setLoggerIsEnabled(boolean)`                | Enables or disables logging to the console or the custom logger.                                      |
 | `updateOptions(newOptions)`                  | Updates the manager's configuration at runtime.                                                       |

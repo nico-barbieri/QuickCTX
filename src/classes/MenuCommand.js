@@ -24,7 +24,7 @@ class MenuCommand {
      * @param {boolean} [options.isHtmlDefined=false] - Internal flag to indicate if the command was defined via HTML.
      */
     constructor({
-        id = crypto.randomUUID(),
+        id = window.crypto?.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).substring(2)),
         label,
         type = "action",
         action,
