@@ -1,8 +1,6 @@
 /* import { QuickCTX, MenuCommand } from '@nicobarbieri/quickctx'; */
 
-/* const { QuickCTX, MenuCommand } = window.QuickCTX;
- */
-import { QuickCTX, MenuCommand } from "../src/index.js";
+const { QuickCTX, MenuCommand } = window.QuickCTX;
 
 import {
     launchConfetti,
