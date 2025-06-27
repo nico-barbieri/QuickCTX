@@ -252,6 +252,7 @@ ctxManager.createAndBindMenu({
   selector: '#some-element',
   mobileTriggerEvent: 'tap' // This specific menu will open on a tap
 });
+```
 
 ## 🎨 Styling & Theming
 
