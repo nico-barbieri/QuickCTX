@@ -460,7 +460,8 @@ function initGlobalEventListener() {
 
 // manage trigger update example
 function initInteractiveControls() {
-    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isTouchDevice =
+        "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
     const triggerControls = document.getElementById("trigger-controls");
     const desktopTriggers = document.getElementById("desktop-triggers");
@@ -468,57 +469,85 @@ function initInteractiveControls() {
     const triggerNote = document.getElementById("trigger-note");
 
     const hoverDelayControl = document.getElementById("hover-delay-control");
-    const holdDurationControl = document.getElementById("hold-duration-control");
-    
+    const holdDurationControl = document.getElementById(
+        "hold-duration-control"
+    );
+
     const hoverDelaySlider = document.getElementById("hover-delay-slider");
     const hoverDelayValueSpan = document.getElementById("hover-delay-value");
-    
+
     const holdDurationSlider = document.getElementById("hold-duration-slider");
-    const holdDurationValueSpan = document.getElementById("hold-duration-value");
+    const holdDurationValueSpan = document.getElementById(
+        "hold-duration-value"
+    );
 
     // Setup the UI based on the device type
     if (isTouchDevice) {
-        desktopTriggers.style.display = 'none';
-        mobileTriggers.style.display = 'flex';
+        desktopTriggers.style.display = "none";
+        mobileTriggers.style.display = "flex";
         // Set 'tap' as the default active button for mobile
         const tapButton = mobileTriggers.querySelector('[data-trigger="tap"]');
-        if(tapButton) tapButton.classList.add('active');
+        if (tapButton) tapButton.classList.add("active");
 
-        triggerNote.textContent = "* On desktop, you can choose between 'contextmenu', 'click', 'dblclick', and 'hover'.";
-        ctxManager.updateMenuConfiguration("trigger", { mobileTriggerEvent: 'tap' });
-
+        triggerNote.textContent =
+            "* On desktop, you can choose between 'contextmenu', 'click', 'dblclick', and 'hover'.";
+        ctxManager.updateMenuConfiguration("trigger", {
+            mobileTriggerEvent: "tap",
+        });
     } else {
         // Set 'click' as the default active button for desktop
-        const clickButton = desktopTriggers.querySelector('[data-trigger="click"]');
-        if(clickButton) clickButton.classList.add('active');
+        const clickButton = desktopTriggers.querySelector(
+            '[data-trigger="click"]'
+        );
+        if (clickButton) clickButton.classList.add("active");
 
-        triggerNote.textContent = "* On touch devices, you can choose between 'tap' and 'hold'.";
-        ctxManager.updateMenuConfiguration("trigger", { triggerEvent: 'click' });
+        triggerNote.textContent =
+            "* On touch devices, you can choose between 'tap' and 'hold'.";
+        ctxManager.updateMenuConfiguration("trigger", {
+            triggerEvent: "click",
+        });
     }
 
     triggerControls.addEventListener("click", (e) => {
-        if (!e.target.matches('.control-btn')) return;
+        if (!e.target.matches(".control-btn")) return;
+
+        const isTouchDevice =
+            "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
         const button = e.target;
-        triggerControls.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
+        triggerControls
+            .querySelectorAll(".control-btn")
+            .forEach((btn) => btn.classList.remove("active"));
+        button.classList.add("active");
 
         const currentTrigger = button.dataset.trigger;
 
-        ctxManager.updateMenuConfiguration("trigger", {
-            triggerEvent: currentTrigger, // Used by desktop
-            mobileTriggerEvent: currentTrigger // Used by mobile
-        });
-        
+        if (isTouchDevice) {
+            ctxManager.updateMenuConfiguration("trigger", {
+                mobileTriggerEvent: currentTrigger, // Used by mobile
+            });
+        } else {
+            ctxManager.updateMenuConfiguration("trigger", {
+                triggerEvent: currentTrigger, // Used by desktop
+            });
+        }
+
         // Show/hide the relevant slider controls
-        hoverDelayControl.style.display = currentTrigger === 'hover' ? 'flex' : 'none';
-        holdDurationControl.style.display = currentTrigger === 'hold' ? 'flex' : 'none';
+        hoverDelayControl.style.display =
+            currentTrigger === "hover" ? "flex" : "none";
+        holdDurationControl.style.display =
+            currentTrigger === "hold" ? "flex" : "none";
     });
 
     hoverDelaySlider.addEventListener("input", (e) => {
         const delay = parseInt(e.target.value, 10);
         hoverDelayValueSpan.textContent = delay;
-        ctxManager.updateOptions({ animations: { hoverMenuOpenDelay: delay, hoverMenuCloseDelay: delay } });
+        ctxManager.updateOptions({
+            animations: {
+                hoverMenuOpenDelay: delay,
+                hoverMenuCloseDelay: delay,
+            },
+        });
     });
 
     holdDurationSlider.addEventListener("input", (e) => {
