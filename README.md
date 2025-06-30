@@ -9,9 +9,11 @@ QuickCTX allows you to build **beautiful, fully functional, and deeply nested co
 [![QuickCTX Showcase Screenshot](/docs/res/demo.gif)](https://nico-barbieri.github.io/QuickCTX/)
 ---
 
-[![NPM Version](https://img.shields.io/npm/v/@nicobarbieri/quickctx?style=flat-square&color=cc3534)](https://www.npmjs.com/package/@nicobarbieri/quickctx)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg?style=flat-square)](https://standardjs.com)
+[![NPM Version](https://img.shields.io/npm/v/@nicobarbieri/quickctx?color=3355cc)](https://www.npmjs.com/package/@nicobarbieri/quickctx)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+[![NPM Downloads](https://img.shields.io/npm/dw/@nicobarbieri/quickctx.svg)](https://www.npmjs.com/package/@nicobarbieri/quickctx)
+
 
 ## Index
 1. [Key Features](#-key-features)
