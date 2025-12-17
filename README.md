@@ -1,6 +1,6 @@
 # ![QuickCTX Logo](./docs/res/QuickCTXLogoSimpleColor.svg "QuickCTX Logo") QuickCTX
 
-**A simple, powerful, and fast library for creating custom context menus on any HTML element.**
+**A simple, powerful, and fast javascript library for creating custom context menus on any HTML element.**
 
 QuickCTX allows you to build **beautiful, fully functional, and deeply nested context menus with just a few lines of code**. It's lightweight, has zero dependencies, and is designed for an excellent developer experience, giving you full control over behavior and appearance.
 
